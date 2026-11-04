@@ -15,6 +15,9 @@
      ALLOW_SIMULATE  "1" permite el botón "simular pago" (por defecto
                      activo salvo NODE_ENV=production)
      CORS_ORIGIN     dominio permitido si la web está en otro servidor
+     ADMIN_PASSWORD  contraseña del panel del propietario (alternativa a
+                     crearla con: node server/set-password.js)
+     TZ_OFFSET_H     zona horaria para las estadísticas (Bolivia: -4)
 
    Los datos se guardan en server/db.json. Para producción conviene
    pasar a una base de datos real (PostgreSQL, MySQL, etc.).
@@ -104,6 +107,165 @@ function issueTicket(o, method, transactionId) {
   save();
   /* TODO: enviar la entrada por correo / WhatsApp al comprador */
   return o.ticket;
+}
+
+/* =====================================================================
+   PANEL DEL PROPIETARIO: acceso con contraseña + estadísticas
+   ===================================================================== */
+const ADMIN_FILE = path.join(__dirname, "admin.json");
+const TZ_OFFSET_H = process.env.TZ_OFFSET_H != null ? +process.env.TZ_OFFSET_H : -4;
+const SESSION_HOURS = 8;
+const sessions = new Map(); // token -> vence (ms)
+const loginFails = new Map(); // ip -> { n, first, until }
+
+function adminCredential() {
+  if (process.env.ADMIN_PASSWORD) return { plain: process.env.ADMIN_PASSWORD };
+  try {
+    return JSON.parse(fs.readFileSync(ADMIN_FILE, "utf8"));
+  } catch {
+    return null;
+  }
+}
+
+function checkPassword(pw) {
+  const c = adminCredential();
+  if (!c || typeof pw !== "string" || !pw) return false;
+  let a, b;
+  if (c.plain != null) {
+    a = crypto.createHash("sha256").update(c.plain).digest();
+    b = crypto.createHash("sha256").update(pw).digest();
+  } else {
+    a = Buffer.from(c.hash, "hex");
+    b = crypto.scryptSync(pw, Buffer.from(c.salt, "hex"), a.length);
+  }
+  return a.length === b.length && crypto.timingSafeEqual(a, b);
+}
+
+function readCookies(req) {
+  const out = {};
+  for (const part of (req.headers.cookie || "").split(";")) {
+    const i = part.indexOf("=");
+    if (i > 0) out[part.slice(0, i).trim()] = part.slice(i + 1).trim();
+  }
+  return out;
+}
+
+function isAdmin(req) {
+  const token = readCookies(req).st_admin;
+  const exp = token && sessions.get(token);
+  if (exp && exp > Date.now()) return true;
+  if (token) sessions.delete(token);
+  return false;
+}
+
+function sessionCookie(req, token, maxAge) {
+  const https = req.socket.encrypted || req.headers["x-forwarded-proto"] === "https";
+  return `st_admin=${token}; HttpOnly; SameSite=Strict; Path=/api/admin; Max-Age=${maxAge}${https ? "; Secure" : ""}`;
+}
+
+/* --- estadísticas (todas las fechas en hora local de Bolivia) --- */
+const DAY = 864e5;
+const OFF = TZ_OFFSET_H * 36e5;
+const localDay = (ts) => Math.floor((ts + OFF) / DAY); // número de día local
+const dayStart = (d) => d * DAY - OFF; // instante en que empieza ese día local
+const dayKey = (d) => new Date(d * DAY).toISOString().slice(0, 10);
+const weekdayOf = (ts) => (new Date(ts + OFF).getUTCDay() + 6) % 7; // 0 = lunes
+const WEEKDAYS = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
+const empty = () => ({ revenue: 0, tickets: 0, orders: 0 });
+const add = (g, o) => ((g.revenue += o.amount), (g.tickets += o.qty), g.orders++, g);
+
+function stats(range) {
+  const now = Date.now();
+  const end = now + 1;
+  const today = localDay(now);
+  const lt = new Date(now + OFF);
+  const paid = Object.values(db.orders)
+    .filter((o) => o.status === "paid" && o.ticket)
+    .map((o) => ({ ...o, t: Date.parse(o.ticket.paidAt) }));
+  const between = (a, b) => paid.filter((o) => o.t >= a && o.t < b);
+  const sum = (list) => list.reduce(add, empty());
+
+  /* Períodos: se comparan con el mismo tramo del período anterior
+     (hoy hasta esta hora vs. ayer hasta esta hora, etc.) */
+  const startDay = dayStart(today);
+  const startWeek = dayStart(today - weekdayOf(now));
+  const startMonth = Date.UTC(lt.getUTCFullYear(), lt.getUTCMonth(), 1) - OFF;
+  const prevMonth = Date.UTC(lt.getUTCFullYear(), lt.getUTCMonth() - 1, 1) - OFF;
+  const period = (start, prevStart) => ({
+    ...sum(between(start, end)),
+    prev: sum(between(prevStart, Math.min(prevStart + (end - start), start))),
+  });
+  const kpis = {
+    day: period(startDay, startDay - DAY),
+    week: period(startWeek, startWeek - 7 * DAY),
+    month: period(startMonth, prevMonth),
+  };
+
+  const trend = [];
+  for (let d = today - 29; d <= today; d++) trend.push({ day: dayKey(d), ...sum(between(dayStart(d), dayStart(d + 1))) });
+
+  const RANGES = { day: startDay, week: startWeek, month: startMonth, d30: dayStart(today - 29), d90: dayStart(today - 89), all: 0 };
+  const r = Object.hasOwn(RANGES, range) ? range : "month";
+  const sel = between(RANGES[r], end);
+
+  const evById = new Map(DATA.EVENTS.map((e) => [e.id, e]));
+  const group = (keys, keyOf) => {
+    const m = new Map(keys.map((k) => [k, empty()]));
+    for (const o of sel) {
+      const k = keyOf(o);
+      if (!m.has(k)) m.set(k, empty());
+      add(m.get(k), o);
+    }
+    return m;
+  };
+  const venueName = (id) => DATA.VENUES.find((v) => v.id === id)?.n || id;
+  const zoneName = (id) => ({ general: "General", preferencial: "Preferencial", vip: "VIP" })[id] || id;
+
+  const byVenue = [...group(DATA.VENUES.map((v) => v.id), (o) => o.venue || evById.get(o.eventId)?.venue)].map(([id, g]) => ({ id, name: venueName(id), ...g }));
+  const byZone = [...group(["general", "preferencial", "vip"], (o) => o.zone)].map(([id, g]) => ({ id, name: zoneName(id), ...g }));
+  const byCategory = [...group(Object.keys(DATA.CATEGORIES), (o) => evById.get(o.eventId)?.cat || "otro")]
+    .map(([id, g]) => ({ id, name: DATA.CATEGORIES[id]?.n || "Otro", ...g }))
+    .filter((c) => c.orders || DATA.EVENTS.some((e) => e.cat === c.id));
+  const byWeekday = [...group([0, 1, 2, 3, 4, 5, 6], (o) => weekdayOf(o.t))].map(([i, g]) => ({ id: i, name: WEEKDAYS[i], ...g }));
+  const byMethod = [...group(["qr", "card"], (o) => o.method || o.ticket.method)].map(([id, g]) => ({ id, name: id === "qr" ? "QR" : "Tarjeta", ...g }));
+  const topEvents = [...group([], (o) => o.eventId)]
+    .map(([id, g]) => {
+      const e = evById.get(id);
+      return { id, name: e ? e.t : "(evento eliminado)", venue: e ? venueName(e.venue) : "", date: e ? `${e.d} ${e.h}` : "", ...g };
+    })
+    .sort((a, b) => b.revenue - a.revenue)
+    .slice(0, 8);
+  const recent = [...sel]
+    .sort((a, b) => b.t - a.t)
+    .slice(0, 12)
+    .map((o) => ({
+      paidAt: o.ticket.paidAt,
+      code: o.ticket.code,
+      event: evById.get(o.eventId)?.t || "(evento eliminado)",
+      venue: venueName(o.venue || evById.get(o.eventId)?.venue),
+      zone: zoneName(o.zone),
+      qty: o.qty,
+      amount: o.amount,
+      method: o.method,
+      buyer: o.buyer?.n || "",
+    }));
+
+  return {
+    generatedAt: new Date(now).toISOString(),
+    tzOffset: TZ_OFFSET_H,
+    range: r,
+    demo: paid.some((o) => o.demo),
+    kpis,
+    trend,
+    total: sum(sel),
+    byVenue,
+    byZone,
+    byCategory,
+    byWeekday,
+    byMethod,
+    topEvents,
+    recent,
+  };
 }
 
 const publicOrder = (o) => ({
@@ -219,14 +381,43 @@ const routes = [
     save();
     return [200, { ok: true, entered: t.checkedIn, of: t.qty }];
   }],
+
+  /* ---------- Panel del propietario ---------- */
+  ["GET", /^\/api\/admin\/me$/, (m, body, req) => [200, { auth: isAdmin(req), configured: !!adminCredential() }]],
+
+  ["POST", /^\/api\/admin\/login$/, (m, body, req) => {
+    if (!adminCredential()) return [503, { error: "El panel aún no tiene contraseña. En la terminal ejecuta: node server/set-password.js" }];
+    const ip = req.socket.remoteAddress || "?";
+    const now = Date.now();
+    let f = loginFails.get(ip);
+    if (f && f.until > now) return [429, { error: `Demasiados intentos. Espera ${Math.ceil((f.until - now) / 6e4)} min.` }];
+    if (!checkPassword(body.password)) {
+      if (!f || now - f.first > 15 * 6e4) f = { n: 0, first: now, until: 0 };
+      if (++f.n >= 5) f.until = now + 15 * 6e4;
+      loginFails.set(ip, f);
+      return [401, { error: "Contraseña incorrecta." }];
+    }
+    loginFails.delete(ip);
+    const token = crypto.randomBytes(32).toString("hex");
+    sessions.set(token, now + SESSION_HOURS * 36e5);
+    return [200, { ok: true }, { "Set-Cookie": sessionCookie(req, token, SESSION_HOURS * 3600) }];
+  }],
+
+  ["POST", /^\/api\/admin\/logout$/, (m, body, req) => {
+    sessions.delete(readCookies(req).st_admin);
+    return [200, { ok: true }, { "Set-Cookie": sessionCookie(req, "", 0) }];
+  }],
+
+  ["GET", /^\/api\/admin\/stats$/, (m, body, req, url) =>
+    isAdmin(req) ? [200, stats(url.searchParams.get("range"))] : [401, { error: "Inicia sesión para ver el panel." }]],
 ];
 
 /* ---------------- servidor HTTP ---------------- */
 const TYPES = { ".html": "text/html; charset=utf-8", ".css": "text/css", ".js": "text/javascript", ".json": "application/json", ".svg": "image/svg+xml", ".png": "image/png", ".jpg": "image/jpeg", ".webp": "image/webp", ".mp4": "video/mp4", ".ico": "image/x-icon" };
 const PRIVATE = /^\/(server|\.git)(\/|$)/;
 
-function send(res, code, obj) {
-  res.writeHead(code, { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" });
+function send(res, code, obj, headers = {}) {
+  res.writeHead(code, { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store", ...headers });
   res.end(JSON.stringify(obj));
 }
 
@@ -262,8 +453,8 @@ http
         if (m && req.method === method) {
           try {
             const body = method === "POST" ? await readBody(req) : {};
-            const [code, out] = await fn(m, body, req);
-            return send(res, code, out);
+            const [code, out, headers] = await fn(m, body, req, url);
+            return send(res, code, out, headers);
           } catch (e) {
             console.error(e);
             return send(res, 500, { error: "Error interno" });
@@ -288,4 +479,6 @@ http
     console.log(`Webhook de pagos: POST /api/webhooks/qr  (header X-Webhook-Secret)`);
     if (WEBHOOK_SECRET === "cambia-esta-clave") console.warn("⚠  Define WEBHOOK_SECRET antes de usar en producción.");
     if (ALLOW_SIMULATE) console.log("Modo pruebas: el botón 'Simular pago' está activo.");
+    console.log(`Panel del propietario → http://localhost:${PORT}/admin.html`);
+    if (!adminCredential()) console.warn("⚠  El panel no tiene contraseña. Créala con: node server/set-password.js");
   });
