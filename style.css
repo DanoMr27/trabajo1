@@ -1,0 +1,1914 @@
+:root {
+    --navy: #0a2350;
+    --blue: #1d5fd0;
+    --night: #050a14;
+    --cream: #f2ead0;
+    --paper: #fbf7e9;
+    --sun: #f6b02a;
+    --amber: #f58a1f;
+    --ink: #12203d;
+    --muted: #5b6785;
+    --ok: #1f9d63;
+    --bad: #c93a3a;
+    --grad: linear-gradient(135deg, var(--sun), var(--amber))
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0
+}
+
+html {
+    scroll-behavior: smooth
+}
+
+body {
+    font-family: 'DM Sans', system-ui, sans-serif;
+    background: var(--paper);
+    color: var(--ink);
+    line-height: 1.65;
+    overflow-x: hidden
+}
+
+body::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    opacity: .07;
+    z-index: 100;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence baseFrequency='.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E")
+}
+
+h1,
+h2,
+h3 {
+    font-family: 'Bowlby One', 'Rubik', system-ui, sans-serif;
+    font-weight: 400;
+    line-height: 1.08
+}
+
+a {
+    color: inherit
+}
+
+:focus-visible {
+    outline: 3px solid var(--sun);
+    outline-offset: 3px
+}
+
+.wrap {
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 0 22px
+}
+
+.btn {
+    display: inline-block;
+    border: 0;
+    border-radius: 999px;
+    padding: 13px 28px;
+    font: 700 1rem 'DM Sans', sans-serif;
+    cursor: pointer;
+    text-decoration: none;
+    background: var(--grad);
+    color: var(--night);
+    box-shadow: 0 5px 0 #b86a0c;
+    transition: transform .15s, box-shadow .15s
+}
+
+.btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 7px 0 #b86a0c
+}
+
+.btn:active {
+    transform: translateY(3px);
+    box-shadow: 0 2px 0 #b86a0c
+}
+
+.btn.ghost {
+    background: transparent;
+    color: var(--cream);
+    box-shadow: inset 0 0 0 2px var(--cream)
+}
+
+.btn:disabled {
+    opacity: .5;
+    cursor: not-allowed
+}
+
+/* Telón: único momento de entrada */
+.curtain {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    width: 51%;
+    z-index: 200;
+    background: repeating-linear-gradient(90deg, #7a1630 0 34px, #5d0f24 34px 68px);
+    animation: open 1.6s .35s cubic-bezier(.7, 0, .2, 1) forwards
+}
+
+.curtain.l {
+    left: 0;
+    transform-origin: left;
+    box-shadow: 12px 0 30px rgba(0, 0, 0, .4)
+}
+
+.curtain.r {
+    right: 0;
+    transform-origin: right;
+    --d: 1;
+    box-shadow: -12px 0 30px rgba(0, 0, 0, .4)
+}
+
+.curtain.l {
+    --dir: -1
+}
+
+.curtain.r {
+    --dir: 1
+}
+
+@keyframes open {
+    to {
+        transform: translateX(calc(var(--dir)*105%));
+        visibility: hidden
+    }
+}
+
+header.top {
+    position: sticky;
+    top: 0;
+    z-index: 30;
+    background: rgba(5, 10, 20, .9);
+    backdrop-filter: blur(8px)
+}
+
+header.top .wrap {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 66px
+}
+
+.logo {
+    font: 400 1.6rem 'Bowlby One';
+    text-decoration: none;
+    background: var(--grad);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    letter-spacing: -1px;
+    transform: rotate(-2deg)
+}
+
+nav a {
+    color: var(--cream);
+    text-decoration: none;
+    margin-left: 24px;
+    font-weight: 500;
+    background: linear-gradient(var(--sun), var(--sun)) 0 100%/0 2px no-repeat;
+    transition: background-size .25s;
+    padding-bottom: 3px
+}
+
+nav a:hover {
+    background-size: 100% 2px
+}
+
+.hero {
+    background: radial-gradient(120% 90% at 70% 0%, var(--blue) 0%, var(--navy) 50%, var(--night) 100%);
+    color: var(--cream);
+    padding: 80px 0 150px;
+    position: relative;
+    overflow: hidden
+}
+
+.beam {
+    position: absolute;
+    top: -10%;
+    width: 34vw;
+    height: 130%;
+    background: linear-gradient(180deg, rgba(246, 176, 42, .28), transparent 75%);
+    clip-path: polygon(44% 0, 56% 0, 100% 100%, 0 100%);
+    transform-origin: 50% 0;
+    animation: sway 9s ease-in-out infinite alternate;
+    pointer-events: none
+}
+
+.beam.a {
+    left: 2%;
+    --r: -9deg
+}
+
+.beam.b {
+    right: 8%;
+    --r: 9deg;
+    animation-delay: -4s;
+    background: linear-gradient(180deg, rgba(242, 234, 208, .2), transparent 75%)
+}
+
+@keyframes sway {
+    from {
+        transform: rotate(var(--r))
+    }
+
+    to {
+        transform: rotate(calc(var(--r)*-.5))
+    }
+}
+
+.hero .wrap {
+    position: relative;
+    display: grid;
+    grid-template-columns: 1.25fr .75fr;
+    gap: 40px;
+    align-items: center
+}
+
+.hero h1 {
+    font-size: clamp(2.3rem, 6vw, 4.1rem);
+    text-wrap: balance
+}
+
+.hero p {
+    margin: 20px 0 26px;
+    max-width: 44ch;
+    font-size: 1.1rem;
+    opacity: .92
+}
+
+.hero .actions {
+    display: flex;
+    gap: 14px;
+    flex-wrap: wrap
+}
+
+.cd {
+    display: inline-block;
+    margin-top: 26px;
+    border: 2px dashed rgba(242, 234, 208, .5);
+    border-radius: 14px;
+    padding: 8px 16px;
+    font-size: .95rem;
+    transform: rotate(-1.5deg)
+}
+
+.cd b {
+    color: var(--sun);
+    font-variant-numeric: tabular-nums
+}
+
+.stamp {
+    position: relative;
+    justify-self: center;
+    width: min(310px, 70vw);
+    aspect-ratio: 1;
+    animation: float 6s ease-in-out infinite
+}
+
+.stamp .core {
+    position: absolute;
+    inset: 14%;
+    border-radius: 50%;
+    background: var(--night);
+    border: 6px solid var(--cream);
+    display: grid;
+    place-items: center;
+    transform: rotate(-5deg)
+}
+
+.stamp .core span {
+    font: 400 3.3rem 'Bowlby One';
+    letter-spacing: -2px;
+    background: var(--grad);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent
+}
+
+.stamp svg {
+    position: absolute;
+    inset: 0;
+    animation: spin 28s linear infinite
+}
+
+.stamp text {
+    fill: var(--cream);
+    font: 700 13px 'DM Sans';
+    letter-spacing: 3px
+}
+
+@keyframes float {
+    50% {
+        transform: translateY(-14px) rotate(2deg)
+    }
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg)
+    }
+}
+
+.wave {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -1px;
+    height: 70px;
+    fill: var(--paper)
+}
+
+.tape {
+    background: var(--amber);
+    color: var(--night);
+    overflow: hidden;
+    white-space: nowrap;
+    transform: rotate(-1.2deg);
+    margin: -34px -10px 0;
+    position: relative;
+    z-index: 3;
+    font: 700 1rem 'DM Sans';
+    box-shadow: 0 6px 18px rgba(10, 35, 80, .25)
+}
+
+.tape div {
+    display: inline-block;
+    padding: 12px 0;
+    animation: roll 28s linear infinite
+}
+
+.tape span {
+    margin: 0 22px
+}
+
+@keyframes roll {
+    to {
+        transform: translateX(-50%)
+    }
+}
+
+section {
+    padding: 84px 0
+}
+
+h2 {
+    font-size: clamp(1.7rem, 4vw, 2.5rem);
+    margin-bottom: 12px;
+    display: inline-block;
+    color: var(--navy)
+}
+
+h2::after {
+    content: "";
+    display: block;
+    height: 10px;
+    margin-top: 6px;
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='10'%3E%3Cpath d='M0 5 Q7.5 0 15 5 T30 5 T45 5 T60 5' fill='none' stroke='%23f58a1f' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E") repeat-x
+}
+
+.sub {
+    color: var(--muted);
+    margin: 6px 0 40px;
+    max-width: 52ch
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+    gap: 34px 28px
+}
+
+.card {
+    position: relative;
+    background: #fff;
+    border-radius: 18px;
+    display: flex;
+    flex-direction: column;
+    filter: drop-shadow(0 12px 18px rgba(10, 35, 80, .16));
+    transition: transform .35s cubic-bezier(.3, 1.6, .5, 1)
+}
+
+.card:nth-child(odd) {
+    transform: rotate(-1.3deg)
+}
+
+.card:nth-child(even) {
+    transform: rotate(1.1deg) translateY(10px)
+}
+
+.card:hover {
+    transform: rotate(0) translateY(-8px)
+}
+
+.card::before,
+.card::after {
+    content: "";
+    position: absolute;
+    top: 190px;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: var(--paper);
+    margin-top: -13px
+}
+
+.card::before {
+    left: -13px
+}
+
+.card::after {
+    right: -13px
+}
+
+.poster {
+    height: 190px;
+    border-radius: 18px 18px 0 0;
+    display: flex;
+    align-items: flex-end;
+    padding: 18px;
+    color: var(--cream);
+    font: 400 1.45rem 'Bowlby One';
+    position: relative;
+    overflow: hidden;
+    background-size: 200% 200% !important;
+    animation: shift 10s ease-in-out infinite alternate
+}
+
+@keyframes shift {
+    to {
+        background-position: 100% 100%
+    }
+}
+
+.poster::after {
+    content: "";
+    position: absolute;
+    right: -28px;
+    top: -28px;
+    width: 120px;
+    height: 120px;
+    background: rgba(242, 234, 208, .16);
+    clip-path: polygon(25% 5%, 75% 5%, 100% 50%, 75% 95%, 25% 95%, 0 50%)
+}
+
+.card .body {
+    padding: 22px 20px 22px;
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+    flex: 1;
+    border-top: 2px dashed #e2d9b8
+}
+
+.meta {
+    font-size: .9rem;
+    color: var(--muted);
+    text-transform: capitalize
+}
+
+.price {
+    font: 400 1.25rem 'Bowlby One';
+    color: var(--navy)
+}
+
+.card .btn {
+    margin-top: auto;
+    text-align: center
+}
+
+.videos {
+    background: var(--night);
+    color: var(--cream);
+    position: relative
+}
+
+.videos h2 {
+    color: var(--cream)
+}
+
+.videos .sub {
+    color: #9fb0d4
+}
+
+.vid {
+    aspect-ratio: 16/9;
+    border-radius: 18px;
+    background: linear-gradient(135deg, var(--navy), var(--blue));
+    display: grid;
+    place-items: center;
+    cursor: pointer;
+    border: 0;
+    color: var(--cream);
+    font: 700 1rem 'DM Sans';
+    width: 100%;
+    transition: transform .25s
+}
+
+.vid:hover {
+    transform: scale(1.03)
+}
+
+@keyframes pulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(246, 176, 42, .55)
+    }
+
+    100% {
+        box-shadow: 0 0 0 24px rgba(246, 176, 42, 0)
+    }
+}
+
+.gallery {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+    gap: 30px
+}
+
+.gallery div {
+    aspect-ratio: 1;
+    border: 10px solid #fff;
+    border-bottom-width: 38px;
+    border-radius: 4px;
+    background-clip: padding-box;
+    display: grid;
+    place-items: center;
+    color: var(--cream);
+    font-weight: 700;
+    box-shadow: 0 10px 20px rgba(10, 35, 80, .2);
+    position: relative;
+    transition: transform .3s
+}
+
+.gallery div:nth-child(3n+1) {
+    transform: rotate(-2.5deg)
+}
+
+.gallery div:nth-child(3n+2) {
+    transform: rotate(2deg)
+}
+
+.gallery div:nth-child(3n) {
+    transform: rotate(-1deg)
+}
+
+.gallery div:hover {
+    transform: rotate(0) scale(1.05);
+    z-index: 2
+}
+
+.gallery div::before {
+    content: "";
+    position: absolute;
+    top: -22px;
+    left: 50%;
+    width: 62px;
+    height: 22px;
+    margin-left: -31px;
+    background: rgba(246, 176, 42, .7);
+    transform: rotate(-3deg)
+}
+
+footer {
+    background: var(--night);
+    color: #9fb0d4;
+    padding: 44px 0;
+    text-align: center
+}
+
+footer b {
+    display: block;
+    font: 400 1.5rem 'Bowlby One';
+    color: var(--sun);
+    margin-bottom: 6px
+}
+
+/* Modal */
+.overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(5, 10, 20, .75);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 50;
+    padding: 14px
+}
+
+.overlay.open {
+    display: flex
+}
+
+.modal {
+    background: var(--paper);
+    border-radius: 24px;
+    width: min(560px, 100%);
+    max-height: 94vh;
+    overflow: auto;
+    padding: 26px
+}
+
+.modal header {
+    all: unset
+}
+
+.steps {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 20px
+}
+
+.steps b {
+    flex: 1;
+    height: 6px;
+    border-radius: 9px;
+    background: #d9d2b6
+}
+
+.steps b.on {
+    background: var(--grad)
+}
+
+.modal h3 {
+    font-size: 1.5rem;
+    margin-bottom: 14px
+}
+
+label {
+    display: block;
+    font-weight: 700;
+    font-size: .9rem;
+    margin: 12px 0 4px
+}
+
+input,
+select {
+    width: 100%;
+    padding: 12px 14px;
+    border: 2px solid #d9d2b6;
+    border-radius: 12px;
+    font: inherit;
+    background: #fff;
+    color: var(--ink)
+}
+
+input:focus,
+select:focus {
+    border-color: var(--blue);
+    outline: 0
+}
+
+input.err {
+    border-color: var(--bad)
+}
+
+.row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px
+}
+
+.qty {
+    display: flex;
+    align-items: center;
+    gap: 14px
+}
+
+.qty button {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    border: 0;
+    background: var(--navy);
+    color: var(--cream);
+    font-size: 1.3rem;
+    cursor: pointer
+}
+
+.summary {
+    background: var(--cream);
+    border-radius: 14px;
+    padding: 14px 16px;
+    margin: 18px 0;
+    display: flex;
+    justify-content: space-between;
+    font-weight: 700
+}
+
+.tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 14px
+}
+
+.tabs button {
+    flex: 1;
+    padding: 12px;
+    border-radius: 12px;
+    border: 2px solid #d9d2b6;
+    background: #fff;
+    font: 700 .95rem 'DM Sans';
+    cursor: pointer
+}
+
+.tabs button.on {
+    border-color: var(--blue);
+    background: #e8f0ff;
+    color: var(--navy)
+}
+
+.qrbox {
+    text-align: center
+}
+
+.qrbox svg {
+    width: 200px;
+    height: 200px;
+    background: #fff;
+    padding: 10px;
+    border-radius: 14px;
+    border: 2px solid #d9d2b6
+}
+
+.msg {
+    font-size: .88rem;
+    color: var(--muted);
+    margin-top: 8px
+}
+
+.error {
+    color: var(--bad);
+    font-size: .88rem;
+    margin-top: 6px;
+    min-height: 1.2em
+}
+
+.nav {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    margin-top: 18px
+}
+
+.nav .btn.ghost {
+    color: var(--navy);
+    box-shadow: inset 0 0 0 2px var(--navy)
+}
+
+.ticket {
+    background: #fff;
+    border-radius: 18px;
+    border: 2px dashed var(--amber);
+    padding: 18px;
+    text-align: center
+}
+
+.ticket strong {
+    font: 800 1.6rem 'Rubik';
+    color: var(--navy);
+    display: block;
+    margin: 6px 0
+}
+
+.close {
+    float: right;
+    background: none;
+    border: 0;
+    font-size: 1.6rem;
+    cursor: pointer;
+    color: var(--muted)
+}
+
+
+/* ===== Compra: detalles ===== */
+.modal {
+    border-top: 8px solid var(--sc, var(--amber));
+    position: relative;
+    animation: pop .45s cubic-bezier(.3, 1.5, .5, 1)
+}
+
+@keyframes pop {
+    from {
+        transform: scale(.88) translateY(20px);
+        opacity: 0
+    }
+}
+
+.steps b {
+    transition: background .4s
+}
+
+#mbody.in>*:not(.ticket2) {
+    animation: rise .45s both
+}
+
+#mbody.in>*:not(.ticket2):nth-child(2) {
+    animation-delay: .05s
+}
+
+#mbody.in>*:not(.ticket2):nth-child(3) {
+    animation-delay: .1s
+}
+
+#mbody.in>*:not(.ticket2):nth-child(4) {
+    animation-delay: .15s
+}
+
+#mbody.in>*:not(.ticket2):nth-child(n+5) {
+    animation-delay: .2s
+}
+
+@keyframes rise {
+    from {
+        opacity: 0;
+        transform: translateY(12px)
+    }
+}
+
+.qrf {
+    position: relative;
+    display: inline-block;
+    padding: 6px
+}
+
+.qrf svg {
+    display: block
+}
+
+.qrf u {
+    position: absolute;
+    width: 26px;
+    height: 26px;
+    border: 4px solid var(--amber);
+    animation: brk 2s ease-in-out infinite
+}
+
+.qrf u:nth-of-type(1) {
+    top: 0;
+    left: 0;
+    border-right: 0;
+    border-bottom: 0;
+    border-radius: 8px 0 0 0
+}
+
+.qrf u:nth-of-type(2) {
+    top: 0;
+    right: 0;
+    border-left: 0;
+    border-bottom: 0;
+    border-radius: 0 8px 0 0
+}
+
+.qrf u:nth-of-type(3) {
+    bottom: 0;
+    left: 0;
+    border-right: 0;
+    border-top: 0;
+    border-radius: 0 0 0 8px
+}
+
+.qrf u:nth-of-type(4) {
+    bottom: 0;
+    right: 0;
+    border-left: 0;
+    border-top: 0;
+    border-radius: 0 0 8px 0
+}
+
+@keyframes brk {
+    50% {
+        transform: scale(.88)
+    }
+}
+
+.scan {
+    position: absolute;
+    left: 14px;
+    right: 14px;
+    top: 14px;
+    height: 3px;
+    border-radius: 3px;
+    background: var(--amber);
+    box-shadow: 0 0 14px 3px rgba(245, 138, 31, .7);
+    animation: scan 2.4s ease-in-out infinite alternate
+}
+
+@keyframes scan {
+    to {
+        top: calc(100% - 17px)
+    }
+}
+
+.status {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-weight: 700;
+    color: var(--navy);
+    margin-top: 12px
+}
+
+.dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--ok);
+    animation: pulse2 1.4s infinite
+}
+
+@keyframes pulse2 {
+    0% {
+        box-shadow: 0 0 0 0 rgba(31, 157, 99, .6)
+    }
+
+    100% {
+        box-shadow: 0 0 0 12px rgba(31, 157, 99, 0)
+    }
+}
+
+.cc {
+    position: relative;
+    height: 178px;
+    max-width: 320px;
+    margin: 0 auto 14px;
+    perspective: 900px
+}
+
+.cc>div {
+    position: absolute;
+    inset: 0;
+    border-radius: 16px;
+    padding: 18px;
+    backface-visibility: hidden;
+    transition: transform .6s cubic-bezier(.4, .2, .2, 1);
+    color: var(--cream);
+    box-shadow: 0 12px 24px rgba(10, 35, 80, .28)
+}
+
+.cf {
+    background: linear-gradient(135deg, var(--blue), var(--navy) 70%);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between
+}
+
+.cb {
+    background: linear-gradient(135deg, var(--navy), var(--night));
+    transform: rotateY(180deg)
+}
+
+.cc.flip .cf {
+    transform: rotateY(-180deg)
+}
+
+.cc.flip .cb {
+    transform: rotateY(0)
+}
+
+.chip {
+    display: block;
+    width: 38px;
+    height: 28px;
+    border-radius: 6px;
+    background: var(--grad)
+}
+
+.cc .num {
+    font: 500 1.2rem 'DM Sans';
+    letter-spacing: 2px;
+    font-variant-numeric: tabular-nums
+}
+
+.cc .r2 {
+    display: flex;
+    justify-content: space-between;
+    font-size: .78rem;
+    letter-spacing: 1px;
+    text-transform: uppercase
+}
+
+.mag {
+    height: 34px;
+    background: #000;
+    margin: 6px -18px 18px
+}
+
+.sig {
+    background: var(--cream);
+    color: var(--night);
+    padding: 8px 12px;
+    border-radius: 6px;
+    text-align: right;
+    font-weight: 700
+}
+
+.proc {
+    text-align: center;
+    padding: 34px 0
+}
+
+.proc h3 {
+    margin: 6px 0 8px
+}
+
+.hex {
+    width: 56px;
+    height: 56px;
+    margin: 0 auto 14px;
+    background: var(--grad);
+    clip-path: polygon(25% 5%, 75% 5%, 100% 50%, 75% 95%, 25% 95%, 0 50%);
+    animation: spin 1.2s linear infinite
+}
+
+.done {
+    text-align: center
+}
+
+.done h3 {
+    font-size: 1.35rem
+}
+
+.ok {
+    width: 72px;
+    display: block;
+    margin: 0 auto 12px;
+    fill: none;
+    stroke-width: 3;
+    stroke-linecap: round;
+    stroke-linejoin: round
+}
+
+.ok circle {
+    stroke: var(--ok);
+    stroke-dasharray: 151;
+    stroke-dashoffset: 151;
+    animation: dr .7s .1s forwards
+}
+
+.ok path {
+    stroke: var(--ok);
+    stroke-dasharray: 40;
+    stroke-dashoffset: 40;
+    animation: dr .4s .7s forwards
+}
+
+@keyframes dr {
+    to {
+        stroke-dashoffset: 0
+    }
+}
+
+.ticket2 {
+    display: flex;
+    background: #fff;
+    border-radius: 16px;
+    margin: 18px 0 10px;
+    filter: drop-shadow(0 10px 14px rgba(10, 35, 80, .2));
+    animation: drop .9s .45s cubic-bezier(.3, 1.5, .5, 1) both
+}
+
+@keyframes drop {
+    from {
+        transform: translateY(-70px) rotate(-6deg);
+        opacity: 0
+    }
+}
+
+.tl {
+    flex: 1;
+    padding: 16px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    font-size: .92rem
+}
+
+.tl b {
+    font: 400 1.15rem 'Bowlby One';
+    color: var(--navy);
+    line-height: 1.2;
+    margin: 2px 0 4px
+}
+
+.tl small,
+.ts small {
+    color: var(--muted)
+}
+
+.ts {
+    position: relative;
+    width: 128px;
+    border-left: 2px dashed var(--amber);
+    padding: 16px 8px;
+    text-align: center;
+    animation: tear .8s 1.5s ease both
+}
+
+@keyframes tear {
+    40% {
+        transform: translateX(9px) rotate(5deg)
+    }
+}
+
+.ts::before,
+.ts::after {
+    content: "";
+    position: absolute;
+    left: -11px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--paper)
+}
+
+.ts::before {
+    top: -10px
+}
+
+.ts::after {
+    bottom: -10px
+}
+
+.ts strong {
+    display: block;
+    font: 400 1.05rem 'Bowlby One';
+    color: var(--navy);
+    margin: 4px 0 10px
+}
+
+.bars {
+    height: 34px;
+    background: repeating-linear-gradient(90deg, var(--night) 0 2px, transparent 2px 4px, var(--night) 4px 7px, transparent 7px 8px)
+}
+
+.confetti {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 300;
+    overflow: hidden
+}
+
+.confetti i {
+    position: absolute;
+    top: -20px;
+    width: 9px;
+    height: 14px;
+    border-radius: 2px;
+    animation: fall linear forwards
+}
+
+@keyframes fall {
+    to {
+        transform: translate(var(--x), 110vh) rotate(720deg)
+    }
+}
+
+@media(max-width:760px) {
+    .hero .wrap {
+        grid-template-columns: 1fr
+    }
+
+    .stamp {
+        width: 200px;
+        order: -1
+    }
+
+    nav a:not(.keep) {
+        display: none
+    }
+
+    .row {
+        grid-template-columns: 1fr
+    }
+
+    .card:nth-child(even) {
+        transform: rotate(1deg)
+    }
+}
+
+@media(prefers-reduced-motion:reduce) {
+    * {
+        animation: none !important;
+        transition: none !important;
+        scroll-behavior: auto !important
+    }
+
+    .curtain {
+        display: none
+    }
+}
+
+
+/* ===== Ajustes de marca SOTIRIA ===== */
+
+/* Logotipo de la barra superior */
+.logo {
+    font-size: clamp(1.15rem, 3vw, 1.45rem);
+    white-space: nowrap;
+    letter-spacing: -1px;
+}
+
+/* Logotipo circular central */
+.stamp .core span {
+    font-size: clamp(1.7rem, 5vw, 2.5rem);
+    letter-spacing: -1px;
+    white-space: nowrap;
+}
+
+/* Nombre del pie de página */
+footer b {
+    font-size: 1.35rem;
+    white-space: nowrap;
+}
+
+/* =================================
+   IDENTIDAD VISUAL SOTIRIA TV
+================================= */
+
+/* Logotipo del encabezado */
+.logo {
+    font-size: clamp(1.05rem, 3vw, 1.45rem);
+    white-space: nowrap;
+    letter-spacing: -1px;
+}
+
+/* Nombre dentro del círculo */
+.stamp .core span {
+    font-size: clamp(1.5rem, 5vw, 2.5rem);
+    letter-spacing: -1px;
+    white-space: nowrap;
+}
+
+/* Nombre del pie de página */
+footer b {
+    font-size: clamp(1.1rem, 3vw, 1.35rem);
+    white-space: nowrap;
+}
+
+/* Evitar desbordamientos horizontales */
+body {
+    overflow-x: hidden;
+}
+
+/* Ajustes para teléfonos */
+@media (max-width: 480px) {
+
+    .logo {
+        font-size: 1.05rem;
+    }
+
+    .stamp {
+        width: min(190px, 65vw);
+    }
+
+    .stamp .core span {
+        font-size: clamp(1.4rem, 7vw, 2rem);
+    }
+
+}
+
+/* =====================================
+   PORTADA PROFESIONAL - SOTIRIA TV
+===================================== */
+
+.hero-content {
+    position: relative;
+    z-index: 2;
+}
+
+/* Etiqueta superior */
+
+.hero-tag {
+    display: inline-block;
+    color: var(--sun);
+    font-size: 0.85rem;
+    font-weight: 800;
+    letter-spacing: 3px;
+    margin-bottom: 22px;
+    padding: 8px 14px;
+    border: 1px solid rgba(246, 176, 42, 0.5);
+    border-radius: 30px;
+    background: rgba(5, 10, 20, 0.25);
+}
+
+/* Título principal */
+
+.hero h1 {
+    max-width: 750px;
+    font-size: clamp(2.5rem, 6vw, 4.5rem);
+    line-height: 1.12;
+    letter-spacing: -1px;
+}
+
+.hero h1 span {
+    display: block;
+    color: var(--sun);
+}
+
+/* Descripción */
+
+.hero p {
+    max-width: 500px;
+    font-size: 1.08rem;
+    line-height: 1.8;
+    color: rgba(242, 234, 208, 0.9);
+}
+
+/* Botones */
+
+.hero .actions {
+    margin-top: 28px;
+    gap: 16px;
+}
+
+.hero .btn {
+    padding: 15px 30px;
+    transition: transform 0.25s, box-shadow 0.25s;
+}
+
+.hero .btn:hover {
+    transform: translateY(-4px);
+}
+
+/* Cuenta regresiva */
+
+.hero .cd {
+    margin-top: 32px;
+    background: rgba(5, 10, 20, 0.25);
+    backdrop-filter: blur(8px);
+    border-color: rgba(246, 176, 42, 0.55);
+}
+
+/* Adaptación a celulares */
+
+@media (max-width: 760px) {
+
+    .hero {
+        padding-top: 55px;
+        padding-bottom: 120px;
+    }
+
+    .hero-tag {
+        font-size: 0.72rem;
+        letter-spacing: 2px;
+    }
+
+    .hero h1 {
+        font-size: clamp(2.2rem, 10vw, 3.4rem);
+    }
+
+    .hero p {
+        font-size: 1rem;
+    }
+
+    .hero .actions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .hero .actions .btn {
+        text-align: center;
+    }
+
+}
+
+/* =====================================
+   CARTELES DE EVENTOS - SOTIRIA TV
+===================================== */
+
+.poster {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    height: 230px;
+    border-radius: 18px 18px 0 0;
+    background: #0a2350;
+}
+
+/* Fotografía del evento */
+
+.poster img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.6s ease;
+    z-index: -1;
+}
+
+/* Sombra para mejorar la lectura */
+
+.poster::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to top,
+            rgba(5, 10, 20, 0.95),
+            rgba(5, 10, 20, 0.05) 85%);
+    z-index: 0;
+}
+
+/* Nombre del evento */
+
+.poster span {
+    position: absolute;
+    bottom: 20px;
+    left: 20px;
+    right: 20px;
+    z-index: 1;
+    color: #fff;
+    font-family: 'Rubik', sans-serif;
+    font-size: 1.35rem;
+    font-weight: 800;
+    line-height: 1.25;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+}
+
+/* Animación al pasar el cursor */
+
+.card:hover .poster img {
+    transform: scale(1.08);
+}
+
+/* Adaptación a celulares */
+
+@media (max-width: 480px) {
+
+    .poster {
+        height: 210px;
+    }
+
+    .poster span {
+        font-size: 1.2rem;
+    }
+
+}
+
+/* ==========================================
+   SOTIRIA TV - GALERÍA EDITORIAL PREMIUM
+========================================== */
+
+#galeria {
+    position: relative;
+    overflow: hidden;
+    padding: 85px 0 95px;
+    background:
+        radial-gradient(ellipse at 15% 20%,
+            rgba(29, 95, 208, .18),
+            transparent 45%),
+        radial-gradient(ellipse at 90% 80%,
+            rgba(246, 176, 42, .09),
+            transparent 40%),
+        linear-gradient(135deg, #050d1c, #0a2350 65%, #061329);
+}
+
+#galeria .wrap {
+    width: 92%;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+#galeria h2 {
+    color: #fff;
+    font-size: clamp(2.2rem, 4vw, 3.5rem);
+    letter-spacing: -1px;
+    margin-bottom: 12px;
+}
+
+#galeria h2::after {
+    content: "";
+    display: block;
+    width: 70px;
+    height: 3px;
+    margin-top: 15px;
+    background: linear-gradient(90deg, #f6b02a, transparent);
+}
+
+#galeria .sub {
+    color: rgba(255, 255, 255, .7);
+    max-width: 600px;
+    margin-bottom: 35px;
+}
+
+/* DISTRIBUCIÓN */
+
+#gal {
+    display: grid !important;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-auto-rows: clamp(170px, 18vw, 240px);
+    grid-auto-flow: row;
+    gap: 16px;
+    width: 100%;
+    margin-top: 35px;
+}
+
+/* TARJETAS */
+
+#gal .gallery-item {
+    position: relative;
+    display: block;
+    width: 100%;
+    height: 100%;
+    min-width: 0;
+    min-height: 0;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    isolation: isolate;
+    background: #07162f;
+    border: 1px solid rgba(246, 176, 42, .3);
+    border-radius: 16px;
+    box-shadow: 0 12px 30px rgba(0, 0, 0, .3);
+    transition: transform .4s ease, border-color .4s ease,
+        box-shadow .4s ease;
+}
+
+/* FOTOGRAFÍA PRINCIPAL */
+
+#gal .gallery-item-1 {
+    grid-column: span 2;
+    grid-row: span 2;
+}
+
+/* CUATRO FOTOGRAFÍAS SECUNDARIAS */
+
+#gal .gallery-item-2,
+#gal .gallery-item-3,
+#gal .gallery-item-4,
+#gal .gallery-item-5 {
+    grid-column: span 1;
+    grid-row: span 1;
+}
+
+/* FOTOGRAFÍA PANORÁMICA */
+
+#gal .gallery-item-6 {
+    grid-column: span 4;
+    grid-row: span 1;
+}
+
+/* IMÁGENES */
+
+#gal .gallery-item img {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    display: block;
+    width: 100%;
+    height: 100%;
+    max-width: none;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    object-fit: cover;
+    transition: transform .7s ease;
+}
+
+/* DEGRADADO */
+
+#gal .gallery-item::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    background: linear-gradient(to top,
+            rgba(3, 10, 25, .95),
+            rgba(3, 10, 25, .05) 85%);
+}
+
+/* TEXTOS */
+
+#gal .gallery-overlay {
+    position: absolute !important;
+    z-index: 2;
+    left: 20px !important;
+    right: 20px !important;
+    bottom: 20px !important;
+    top: auto !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+}
+
+#gal .gallery-tag {
+    display: inline-block;
+    color: #f6b02a;
+    font-size: .68rem;
+    font-weight: 800;
+    letter-spacing: 2px;
+    margin-bottom: 8px;
+}
+
+#gal .gallery-overlay figcaption {
+    color: #fff;
+    font-size: 1.15rem;
+    font-weight: 800;
+    line-height: 1.25;
+    text-shadow: 0 2px 12px rgba(0, 0, 0, .7);
+}
+
+#gal .gallery-item-1 figcaption {
+    font-size: clamp(1.6rem, 3vw, 2.4rem);
+}
+
+#gal .gallery-number {
+    position: absolute;
+    z-index: 3;
+    top: 14px;
+    right: 15px;
+    color: #fff;
+    background: rgba(5, 13, 28, .65);
+    padding: 6px 10px;
+    border-radius: 20px;
+    font-size: .7rem;
+    letter-spacing: 1px;
+    backdrop-filter: blur(6px);
+}
+
+/* EFECTOS */
+
+#gal .gallery-item:hover {
+    transform: translateY(-5px);
+    border-color: #f6b02a;
+    box-shadow: 0 18px 40px rgba(0, 0, 0, .4);
+}
+
+#gal .gallery-item:hover img {
+    transform: scale(1.07);
+}
+
+/* TABLET */
+
+@media (max-width: 850px) {
+    #gal {
+        grid-auto-rows: 190px;
+        gap: 12px;
+    }
+
+    #gal .gallery-overlay {
+        left: 13px !important;
+        right: 13px !important;
+        bottom: 14px !important;
+    }
+
+    #gal .gallery-overlay figcaption {
+        font-size: 1rem;
+    }
+}
+
+/* MÓVILES */
+
+@media (max-width: 600px) {
+    #galeria {
+        padding: 60px 0;
+    }
+
+    #gal {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        grid-auto-rows: 175px;
+        gap: 10px;
+    }
+
+    #gal .gallery-item-1 {
+        grid-column: span 2;
+        grid-row: span 2;
+    }
+
+    #gal .gallery-item-2,
+    #gal .gallery-item-3,
+    #gal .gallery-item-4,
+    #gal .gallery-item-5 {
+        grid-column: span 1;
+        grid-row: span 1;
+    }
+
+    #gal .gallery-item-6 {
+        grid-column: span 2;
+        grid-row: span 1;
+    }
+
+    #gal .gallery-item-1 figcaption {
+        font-size: 1.7rem;
+    }
+
+    #gal .gallery-overlay figcaption {
+        font-size: .95rem;
+    }
+
+    #gal .gallery-tag {
+        font-size: .58rem;
+    }
+}
+
+/* ==========================================
+   SOTIRIA TV - VIDEO SHOWCASE
+========================================== */
+
+#videos.videos {
+    position: relative;
+    overflow: hidden;
+    padding: 85px 0 95px;
+    background:
+        radial-gradient(ellipse at 85% 15%,
+            rgba(29, 95, 208, .18),
+            transparent 45%),
+        linear-gradient(135deg, #071329, #0a2350);
+}
+
+#videos .wrap {
+    width: 92%;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+#videos h2 {
+    color: #fff;
+    font-size: clamp(2.2rem, 4vw, 3.3rem);
+    font-weight: 900;
+    margin-bottom: 12px;
+}
+
+#videos h2::after {
+    content: "";
+    display: block;
+    width: 65px;
+    height: 3px;
+    margin-top: 15px;
+    background: linear-gradient(90deg, #f6b02a, transparent);
+}
+
+#videos .sub {
+    color: rgba(255, 255, 255, .7);
+    max-width: 620px;
+    line-height: 1.7;
+}
+
+/* DISTRIBUCIÓN DE LOS VIDEOS */
+
+#vids {
+    display: grid !important;
+    grid-template-columns: 1.5fr 1fr;
+    grid-template-rows: repeat(2, 210px);
+    gap: 18px;
+    margin-top: 35px;
+}
+
+#vids>div {
+    min-width: 0;
+    min-height: 0;
+}
+
+#vids>div:first-child {
+    grid-row: span 2;
+}
+
+/* TARJETAS DE VIDEO */
+
+#vids .vid {
+    position: relative;
+    display: flex;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    align-items: flex-end;
+    justify-content: flex-start;
+    overflow: hidden;
+    padding: 25px;
+    border: 1px solid rgba(246, 176, 42, .3);
+    border-radius: 18px;
+    background-color: #07162f;
+    background-size: cover !important;
+    background-position: center !important;
+    cursor: pointer;
+    text-align: left;
+    box-shadow: 0 14px 35px rgba(0, 0, 0, .3);
+    transition: transform .4s ease, border-color .4s ease,
+        box-shadow .4s ease;
+}
+
+/* MINIATURAS PROVISIONALES */
+
+#vids>div:nth-child(1) .vid {
+    background-image:
+        linear-gradient(to top, rgba(3, 9, 22, .95), transparent 85%),
+        url("https://images.unsplash.com/photo-1503095396549-807759245b35?auto=format&fit=crop&w=1200&q=85") !important;
+}
+
+#vids>div:nth-child(2) .vid {
+    background-image:
+        linear-gradient(to top, rgba(3, 9, 22, .95), transparent 85%),
+        url("https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?auto=format&fit=crop&w=1000&q=85") !important;
+}
+
+#vids>div:nth-child(3) .vid {
+    background-image:
+        linear-gradient(to top, rgba(3, 9, 22, .95), transparent 85%),
+        url("https://images.unsplash.com/photo-1501386761578-eac5c94b800a?auto=format&fit=crop&w=1000&q=85") !important;
+}
+
+/* CONTENIDO */
+
+#vids .vid span {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 13px;
+    color: #fff;
+    font-family: inherit;
+    font-size: 1.15rem;
+    font-weight: 800;
+    line-height: 1.3;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, .8);
+}
+
+/* EFECTOS */
+
+#vids .vid:hover {
+    transform: translateY(-5px);
+    border-color: #f6b02a;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, .4);
+}
+
+#vids .vid:hover i {
+    transform: scale(1.12);
+    background: #fff;
+}
+
+#vids .vid:focus-visible {
+    outline: 3px solid #f6b02a;
+    outline-offset: 4px;
+}
+
+/* MÓVILES */
+
+@media (max-width: 700px) {
+    #videos.videos {
+        padding: 60px 0;
+    }
+
+    #vids {
+        grid-template-columns: 1fr;
+        grid-template-rows: 250px 190px 190px;
+        gap: 13px;
+    }
+
+    #vids>div:first-child {
+        grid-row: auto;
+    }
+
+    #vids .vid {
+        padding: 18px;
+    }
+}
+
+/* PLAY BUTTON - SOTIRIA TV */
+#vids .vid i {
+    all: unset;
+    box-sizing: border-box;
+    position: relative;
+    display: flex;
+    flex: 0 0 48px;
+    width: 48px;
+    height: 48px;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgba(255, 255, 255, .75);
+    border-radius: 50%;
+    background: rgba(246, 176, 42, .88);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, .3);
+    transition: transform .25s ease, background .25s ease;
+}
+
+#vids .vid i::after {
+    content: none;
+}
+
+#vids .vid i::before {
+    content: "";
+    display: block;
+    width: 0;
+    height: 0;
+    margin-left: 4px;
+    border-top: 7px solid transparent;
+    border-bottom: 7px solid transparent;
+    border-left: 10px solid #071329;
+}
+
+#vids .vid:hover i {
+    transform: scale(1.08);
+    background: #fff;
+}
+
+#vids .vid:active i {
+    transform: scale(.96);
+}
