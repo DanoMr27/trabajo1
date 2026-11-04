@@ -3,87 +3,203 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>SOTIRIA TV | Eventos y entradas</title><link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Bowlby+One&family=Rubik:wght@500;800&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css">
+<title>SOTIRIA Tickets | Entradas para teatro, humor y música</title>
+<meta name="description" content="Compra entradas para teatro, stand-up, música y más en Santa Cruz de la Sierra. Paga con QR o tarjeta y recibe tu entrada al instante.">
+<meta name="theme-color" content="#0e0c15">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23ff4f6d'/%3E%3Ctext x='32' y='44' font-size='34' text-anchor='middle' fill='white' font-family='Arial' font-weight='bold'%3ES%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-<div class="curtain l"></div><div class="curtain r"></div>
-<header class="top"><div class="wrap">
-  <a class="logo" href="#">SOTIRIA TV</a>
-  <nav><a href="#funciones">Funciones</a><a href="#videos">Videos</a><a href="#galeria">Galería</a><a class="keep" href="#funciones">Comprar entrada</a></nav>
-</div></header>
+<a class="skip" href="#eventos">Saltar a los eventos</a>
+
+<header class="top" id="top">
+  <div class="wrap bar">
+    <a class="logo" href="#" aria-label="SOTIRIA Tickets, inicio"><span class="logo-mark">S</span><span>SOTIRIA<small>tickets</small></span></a>
+    <nav class="mainnav" id="nav" aria-label="Principal">
+      <a href="#eventos">Eventos</a>
+      <a href="#teatros">Teatros</a>
+      <a href="#videos">Videos</a>
+      <a href="#galeria">Galería</a>
+      <a href="#vender">Vende con nosotros</a>
+    </nav>
+    <button class="btn sm mytk" id="openTickets" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 8a2 2 0 0 0 2-2h14a2 2 0 0 0 2 2v2a2 2 0 0 0 0 4v2a2 2 0 0 0-2 2H5a2 2 0 0 0-2-2v-2a2 2 0 0 0 0-4z"/></svg><span>Mis entradas</span><b class="count" id="tkCount" hidden>0</b></button>
+    <button class="burger" id="burger" type="button" aria-label="Abrir menú" aria-expanded="false" aria-controls="nav"><i></i><i></i><i></i></button>
+  </div>
+</header>
+
 <main>
-<div class="hero"><div class="beam a"></div><div class="beam b"></div>
-<div class="wrap">
-  <div class="hero-content">
-  
-    <span class="hero-tag">
-      ✦ VIVE EL ESPECTÁCULO
-    </span>
-  
-    <h1>
-      Las luces se apagan,
-      <span>tu noche empieza.</span>
-    </h1>
-  
-    <p>
-      Teatro, humor, música y grandes historias
-      se encuentran en un solo lugar.
-      Descubre los próximos eventos en
-      Santa Cruz de la Sierra y vive
-      experiencias inolvidables.
-    </p>
-  
-    <div class="actions">
-      <a class="btn" href="#funciones">
-        Descubrir eventos →
-      </a>
-  
-      <a class="btn ghost" href="#videos">
-        Ver adelantos
-      </a>
+  <!-- ============ HERO ============ -->
+  <section class="hero">
+    <div class="glow g1"></div><div class="glow g2"></div>
+    <div class="wrap hero-grid">
+      <div class="hero-copy">
+        <span class="eyebrow"><i class="live"></i>Entradas en Santa Cruz de la Sierra</span>
+        <h1>Todas las funciones de la ciudad, <em>en un solo lugar.</em></h1>
+        <p class="lead">Teatro, stand-up, música, danza y más de los mejores escenarios. Elige tu función, paga con QR desde la app de tu banco y entra con tu código.</p>
+        <form class="search" id="search" role="search">
+          <label class="sr" for="q">Buscar eventos</label>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+          <input id="q" type="search" placeholder="Busca un show, artista o teatro…" autocomplete="off">
+          <button class="btn" type="submit">Buscar</button>
+        </form>
+        <ul class="stats" id="stats"></ul>
+      </div>
+      <div class="feature" id="feature" aria-live="polite"></div>
     </div>
-  
-    <div class="cd" id="cd">
-      Calculando la próxima función…
+  </section>
+
+  <div class="chips-wrap"><div class="wrap"><div class="chips" id="chips" role="toolbar" aria-label="Categorías"></div></div></div>
+
+  <!-- ============ EVENTOS ============ -->
+  <section id="eventos" class="sec">
+    <div class="wrap">
+      <div class="sec-head">
+        <div>
+          <h2>Próximas funciones</h2>
+          <p class="sub" id="resultsLabel">Todas las funciones disponibles</p>
+        </div>
+        <div class="filters">
+          <label class="sel"><span>Teatro</span><select id="fVenue"></select></label>
+          <label class="sel"><span>Fecha</span><select id="fDate">
+            <option value="all">Cualquier fecha</option>
+            <option value="week">Próximos 7 días</option>
+            <option value="month">Próximos 30 días</option>
+            <option value="weekend">Este fin de semana</option>
+          </select></label>
+          <label class="sel"><span>Ordenar</span><select id="fSort">
+            <option value="date">Más próximos</option>
+            <option value="price">Menor precio</option>
+            <option value="name">Nombre (A-Z)</option>
+          </select></label>
+        </div>
+      </div>
+      <div class="grid events" id="events"></div>
+      <div class="empty" id="empty" hidden>
+        <p><b>No encontramos funciones con esos filtros.</b><br>Prueba con otra fecha o categoría.</p>
+        <button class="btn ghost" id="clearFilters" type="button">Ver todas las funciones</button>
+      </div>
     </div>
-  
-  </div>
-  <div class="stamp" aria-hidden="true">
-    <svg viewBox="0 0 200 200"><defs><path id="c" d="M100,100 m-82,0 a82,82 0 1,1 164,0 a82,82 0 1,1 -164,0"/></defs><text><textPath href="#c">SOTIRIA TV • TEATRO • EN VIVO • SANTA CRUZ • </textPath></text></svg>
-    <div class="core"><span>SOTIRIA</span></div>
-  </div>
-</div>
-<svg class="wave" viewBox="0 0 1200 70" preserveAspectRatio="none"><path d="M0 40 Q150 0 300 35 T600 30 T900 38 T1200 20 V70 H0Z"/></svg></div>
-<div class="tape" aria-hidden="true"><div><span>✺ Función en vivo</span><span>✺ Entradas con QR o tarjeta</span><span>✺ Santa Cruz de la Sierra</span><span>✺ Función en vivo</span><span>✺ Entradas con QR o tarjeta</span><span>✺ Santa Cruz de la Sierra</span><span>✺ Función en vivo</span><span>✺ Entradas con QR o tarjeta</span><span>✺ Santa Cruz de la Sierra</span><span>✺ Función en vivo</span><span>✺ Entradas con QR o tarjeta</span><span>✺ Santa Cruz de la Sierra</span></div><div><span>✺ Función en vivo</span><span>✺ Entradas con QR o tarjeta</span><span>✺ Santa Cruz de la Sierra</span><span>✺ Función en vivo</span><span>✺ Entradas con QR o tarjeta</span><span>✺ Santa Cruz de la Sierra</span><span>✺ Función en vivo</span><span>✺ Entradas con QR o tarjeta</span><span>✺ Santa Cruz de la Sierra</span><span>✺ Función en vivo</span><span>✺ Entradas con QR o tarjeta</span><span>✺ Santa Cruz de la Sierra</span></div></div>
+  </section>
 
-<section id="funciones"><div class="wrap">
-  <h2>Próximas funciones</h2>
-  <p class="sub">Escoge la que más te llame. Elegir zona, pagar y recibir tu entrada toma un par de minutos.</p>
-  <div class="grid" id="shows"></div>
-</div></section>
+  <!-- ============ CÓMO FUNCIONA ============ -->
+  <section class="sec how">
+    <div class="wrap">
+      <h2>Tu entrada en 3 pasos</h2>
+      <ol class="steps3">
+        <li><span>1</span><h3>Elige tu función</h3><p>Filtra por teatro, fecha o categoría y escoge tu zona.</p></li>
+        <li><span>2</span><h3>Paga con QR o tarjeta</h3><p>Escanea el QR con la app de cualquier banco. La confirmación es automática.</p></li>
+        <li><span>3</span><h3>Entra con tu código</h3><p>Tu entrada llega al instante con un QR único. Muéstralo en la puerta.</p></li>
+      </ol>
+    </div>
+  </section>
 
-<section id="videos" class="videos"><div class="wrap">
-  <h2>Un vistazo antes de venir</h2>
-  <p class="sub">Adelantos y momentos que nos hicieron reír (y llorar un poquito).</p>
-  <div class="grid" id="vids"></div>
-</div></section>
+  <!-- ============ TEATROS ============ -->
+  <section id="teatros" class="sec">
+    <div class="wrap">
+      <div class="sec-head"><div><h2>Teatros y salas</h2><p class="sub">Los escenarios que venden sus entradas con nosotros.</p></div></div>
+      <div class="grid venues" id="venues"></div>
+    </div>
+  </section>
 
-<section id="galeria"><div class="wrap">
-  <h2>Así se vive</h2>
-  <p class="sub">Fotos de nuestras noches. La próxima puedes salir tú.</p>
-  <div class="gallery" id="gal"></div>
-</div></section>
+  <!-- ============ VIDEOS ============ -->
+  <section id="videos" class="sec videos">
+    <div class="wrap">
+      <div class="sec-head"><div><h2>Un vistazo antes de venir</h2><p class="sub">Adelantos, mejores momentos y lo que pasa detrás del telón.</p></div></div>
+      <div class="grid vids" id="vids"></div>
+    </div>
+  </section>
+
+  <!-- ============ GALERÍA ============ -->
+  <section id="galeria" class="sec">
+    <div class="wrap">
+      <div class="sec-head"><div><h2>Así se vive</h2><p class="sub">Fotos de nuestras noches. La próxima puedes salir tú.</p></div></div>
+      <div class="gallery" id="gal"></div>
+    </div>
+  </section>
+
+  <!-- ============ VENDE CON NOSOTROS ============ -->
+  <section id="vender" class="sec sell">
+    <div class="wrap sell-grid">
+      <div>
+        <span class="eyebrow">Para teatros, productoras y salas</span>
+        <h2>Vende tus entradas con nosotros</h2>
+        <ul class="ticks">
+          <li>Cobro por QR interoperable y tarjeta, sin efectivo.</li>
+          <li>Entradas con QR único y validación en la puerta.</li>
+          <li>Tu cartelera frente al público de toda la ciudad.</li>
+          <li>Reportes de ventas por función y por zona.</li>
+        </ul>
+      </div>
+      <form class="card-form" id="sellForm" novalidate>
+        <h3>Cuéntanos de tu espacio</h3>
+        <label for="sv">Nombre del teatro o productora</label><input id="sv" required>
+        <div class="row"><div><label for="sn">Tu nombre</label><input id="sn" autocomplete="name" required></div>
+        <div><label for="st">Celular</label><input id="st" type="tel" autocomplete="tel" required></div></div>
+        <label for="sm">¿Qué tipo de eventos haces?</label><textarea id="sm" rows="3"></textarea>
+        <p class="error" id="sellErr" role="alert"></p>
+        <button class="btn block" type="submit">Enviar por WhatsApp</button>
+        <p class="msg">También puedes escribirnos a <a id="sellMail" href="#"></a></p>
+      </form>
+    </div>
+  </section>
+
+  <!-- ============ FAQ ============ -->
+  <section class="sec faq">
+    <div class="wrap narrow">
+      <h2>Preguntas frecuentes</h2>
+      <details><summary>¿Cómo pago con QR?</summary><p>Al confirmar tu compra verás un código QR por el monto exacto. Ábrelo con la app de tu banco (cualquier banco boliviano con pagos QR), escanéalo y confirma. La página detecta el pago y te entrega tu entrada automáticamente; no necesitas enviar comprobantes.</p></details>
+      <details><summary>¿Dónde veo mis entradas?</summary><p>En el botón <b>Mis entradas</b>, arriba a la derecha. Ahí puedes mostrar el QR en la puerta o imprimirlo. También te las enviamos al correo que registres.</p></details>
+      <details><summary>¿Cuánto tiempo tengo para pagar?</summary><p>El QR es válido por 15 minutos. Durante ese tiempo tus asientos quedan reservados.</p></details>
+      <details><summary>¿Puedo pedir un reembolso?</summary><p>Si la función se cancela o se reprograma te devolvemos el 100%. En otros casos, depende de la política de cada teatro.</p></details>
+    </div>
+  </section>
 </main>
-<footer><b>SOTIRIA TV</b>Santa Cruz de la Sierra, Bolivia<br>Síguenos en Facebook, YouTube y TikTok</footer>
-<div class="overlay" id="ov" role="dialog" aria-modal="true" aria-labelledby="mt">
-  <div class="modal">
-    <button class="close" id="x" aria-label="Cerrar">×</button>
-    <div class="steps" id="steps"><b></b><b></b><b></b><b></b></div>
-    <div id="mbody"></div>
+
+<footer class="foot">
+  <div class="wrap foot-grid">
+    <div><a class="logo" href="#"><span class="logo-mark">S</span><span>SOTIRIA<small>tickets</small></span></a><p>Santa Cruz de la Sierra, Bolivia</p></div>
+    <div><b>Explora</b><a href="#eventos">Eventos</a><a href="#teatros">Teatros</a><a href="#videos">Videos</a></div>
+    <div><b>Síguenos</b><a href="https://www.facebook.com/" rel="noopener" target="_blank">Facebook</a><a href="https://www.youtube.com/" rel="noopener" target="_blank">YouTube</a><a href="https://www.tiktok.com/" rel="noopener" target="_blank">TikTok</a></div>
+  </div>
+  <p class="wrap legal">© <span id="yr"></span> SOTIRIA TV. Pagos procesados de forma segura. <span id="modeBadge" class="mode"></span></p>
+</footer>
+
+<!-- Compra -->
+<div class="overlay" id="ov" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="mt">
+    <button class="close" id="ovClose" type="button" aria-label="Cerrar">×</button>
+    <div class="m-head" id="mhead"></div>
+    <ol class="progress" id="progress" aria-label="Pasos de compra"><li>Entradas</li><li>Tus datos</li><li>Pago</li><li>Listo</li></ol>
+    <div class="m-body" id="mbody"></div>
   </div>
 </div>
-<script src="script.js"></script>
+
+<!-- Video -->
+<div class="overlay" id="vo" hidden>
+  <div class="modal video-modal" role="dialog" aria-modal="true" aria-label="Reproductor de video">
+    <button class="close" id="voClose" type="button" aria-label="Cerrar video">×</button>
+    <div class="player" id="player"></div>
+    <div class="vbar" id="vbar"></div>
+  </div>
+</div>
+
+<!-- Mis entradas -->
+<div class="overlay side" id="tk" hidden>
+  <aside class="drawer" role="dialog" aria-modal="true" aria-labelledby="tkTitle">
+    <button class="close" id="tkClose" type="button" aria-label="Cerrar">×</button>
+    <h2 id="tkTitle">Mis entradas</h2>
+    <div id="tkList"></div>
+  </aside>
+</div>
+
+<div id="printArea" aria-hidden="true"></div>
+
+<script src="vendor/qrcode.js"></script>
+<script src="js/data.js"></script>
+<script src="js/payments.js"></script>
+<script src="js/app.js"></script>
 </body>
 </html>
