@@ -40,7 +40,12 @@ const store = {
     } catch {}
   },
 };
-const myOrders = () => store.get("st_orders", []);
+/* Solo acepta una lista de pedidos válidos: versiones anteriores de la página
+   guardaban "st_orders" con otro formato (un objeto), y eso rompía la compra. */
+const myOrders = () => {
+  const v = store.get("st_orders", []);
+  return Array.isArray(v) ? v.filter((o) => o && typeof o === "object" && o.code) : [];
+};
 function saveOrder(o) {
   store.set("st_orders", [o, ...myOrders().filter((x) => x.code !== o.code)].slice(0, 30));
   updateCount();
@@ -126,21 +131,43 @@ function tickCd() {
 }
 setInterval(tickCd, 30000);
 
+const svg = (d) => `<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">${d}</svg>`;
+const ICON = {
+  pin: svg('<path d="M12 21s-7-6.1-7-11.5a7 7 0 0 1 14 0C19 14.9 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/>'),
+  clock: svg('<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>'),
+  user: svg('<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>'),
+  ticket: svg('<path d="M3 8a2 2 0 0 0 2-2h14a2 2 0 0 0 2 2v2a2 2 0 0 0 0 4v2a2 2 0 0 0-2 2H5a2 2 0 0 0-2-2v-2a2 2 0 0 0 0-4z"/><path d="M14 6v12" stroke-dasharray="2 2"/>'),
+  arrow: svg('<path d="M5 12h14M13 6l6 6-6 6"/>'),
+  book: svg('<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5z"/><path d="M4 19.5A2.5 2.5 0 0 0 6.5 22H20v-5"/>'),
+};
+
 function renderFuncs() {
-  $("#obraSub").textContent = `${OBRA.venue} · ${OBRA.dur} · ${OBRA.age} · ${bs(OBRA.price)} por entrada`;
+  $("#obraSub").innerHTML = [
+    [ICON.pin, OBRA.venue],
+    [ICON.clock, OBRA.dur],
+    [ICON.user, OBRA.age],
+    [ICON.ticket, `${bs(OBRA.price)} por entrada`, true],
+  ]
+    .map(([i, t, hl]) => `<li${hl ? ' class="hl"' : ""}>${i}<span>${esc(t)}</span></li>`)
+    .join("");
   const list = OBRA.funciones.slice().sort((a, b) => fDate(a) - fDate(b));
   $("#funcs").innerHTML = list
     .map((f) => {
       const past = fDate(f) < new Date();
       const left = AVAIL ? AVAIL.obra[f.id] : null;
       const off = past || left === 0;
+      const hot = left != null && left <= 30 && !off;
       const d = fDate(f);
-      const note = past ? "Función realizada" : left === 0 ? "Agotado" : left != null && left <= 30 ? `¡Quedan ${left}!` : "Entradas disponibles";
+      const note = past ? "Función realizada" : left === 0 ? "Agotado" : hot ? `¡Quedan ${left}!` : "Entradas disponibles";
       return `
-      <article class="func${off ? " off" : ""}">
-        <div class="func-date"><b>${d.getDate()}</b>${esc(d.toLocaleDateString("es-BO", { month: "short" }).replace(".", ""))}</div>
-        <div class="func-info"><h3>${esc(cap(d.toLocaleDateString("es-BO", { weekday: "long" })))} · ${esc(f.h)}</h3><p class="${left != null && left <= 30 && !off ? "hot" : ""}">${esc(note)}</p></div>
-        <button class="btn" type="button" data-buy="obra" data-f="${f.id}" ${off ? "disabled" : ""}>${off ? (past ? "Finalizada" : "Agotado") : "Comprar"}</button>
+      <article class="func${off ? " off" : ""}${hot ? " is-hot" : ""}">
+        <div class="func-date"><span>${esc(d.toLocaleDateString("es-BO", { month: "short" }).replace(".", ""))}</span><b>${d.getDate()}</b></div>
+        <div class="func-info">
+          <h3>${esc(cap(d.toLocaleDateString("es-BO", { weekday: "long" })))}</h3>
+          <p class="func-meta">${ICON.clock}<span>${esc(f.h)}</span><i aria-hidden="true">·</i>${ICON.pin}<span>${esc(OBRA.venue)}</span></p>
+          <p class="func-state"><i class="state-dot" aria-hidden="true"></i>${esc(note)}</p>
+        </div>
+        <button class="btn func-btn" type="button" data-buy="obra" data-f="${f.id}" ${off ? "disabled" : ""}>${off ? (past ? "Finalizada" : "Agotado") : `Comprar${ICON.arrow}`}</button>
       </article>`;
     })
     .join("");
@@ -157,7 +184,7 @@ function renderBook() {
       <p class="by">por ${esc(b.author)}</p>
       <p>${esc(b.long)}</p>
       <ul class="ticks">${b.delivery.map((d) => `<li>${esc(d.n)}</li>`).join("")}</ul>
-      <div class="book-buy"><span class="price">${bs(b.price)}</span><button class="btn lg" type="button" data-buy="libro">Comprar el libro</button></div>
+      <div class="book-buy"><span class="price">${bs(b.price)}<small>por libro</small></span><button class="btn book-btn" type="button" data-buy="libro">${ICON.book}Comprar el libro</button></div>
     </div>`;
 }
 

@@ -55,6 +55,26 @@ let db = { orders: {}, messages: [], media: {}, leads: [], seen: {}, greeted: {}
 try {
   db = { ...db, ...JSON.parse(fs.readFileSync(DB_FILE, "utf8")) };
 } catch {}
+
+/* Pedidos de versiones anteriores de la página (sin "product" válido) rompen el
+   panel. Se apartan a db-legacy.json (no se borran) y se quitan de la base activa. */
+{
+  const legacy = Object.entries(db.orders || {}).filter(([, o]) => !o || !PRODUCTS[o.product]);
+  if (legacy.length || db.tickets) {
+    const LEGACY_FILE = path.join(DIR, "db-legacy.json");
+    let old = {};
+    try {
+      old = JSON.parse(fs.readFileSync(LEGACY_FILE, "utf8"));
+    } catch {}
+    old.orders = { ...(old.orders || {}), ...Object.fromEntries(legacy) };
+    if (db.tickets) old.tickets = { ...(old.tickets || {}), ...db.tickets };
+    fs.writeFileSync(LEGACY_FILE, JSON.stringify(old));
+    for (const [id] of legacy) delete db.orders[id];
+    delete db.tickets;
+    fs.writeFileSync(DB_FILE, JSON.stringify(db));
+    console.log(`Se apartaron ${legacy.length} pedidos de una versión anterior → server/db-legacy.json`);
+  }
+}
 let saveTimer;
 function save() {
   clearTimeout(saveTimer);

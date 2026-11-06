@@ -38,7 +38,10 @@ async function api(path, opts = {}) {
     showLogin();
     throw new Error("Tu sesión terminó");
   }
-  const j = await r.json().catch(() => ({}));
+  const j = await r.json().catch(() => null);
+  /* Sin respuesta JSON = la página no la está sirviendo nuestro servidor
+     (p. ej. Live Server de VS Code o el archivo abierto con doble clic). */
+  if (!j) throw new Error("No se encontró el servidor del panel. Ejecuta «node server/server.js» y abre http://localhost:3000/admin.html");
   if (!r.ok) throw new Error(j.error || "Error de conexión");
   return j;
 }

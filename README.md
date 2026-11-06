@@ -71,7 +71,7 @@ de verdad, bórralos con `node server/seed.js --clear`.
 | Textos de los mensajes automáticos de WhatsApp | `server/textos.js` |
 | Diseño | `css/style.css` (página), `css/admin.css` (panel) |
 
-Los textos, fechas, imágenes, el precio del libro (Bs 70), el número de WhatsApp y los videos son **de ejemplo**.
+El libro ya tiene sus datos reales (*La última jugada*, de Simón Arce, Bs 100). Los demás textos, fechas, imágenes, el número de WhatsApp y los videos son **de ejemplo**.
 
 ## Datos
 
