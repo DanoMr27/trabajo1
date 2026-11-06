@@ -1,25 +1,22 @@
 /* =====================================================================
-   SOTIRIA Tickets — lógica de la página
+   SOTIRIA — lógica de la página
    ===================================================================== */
-const { CATEGORIES, VENUES, EVENTS, VIDEOS, GALLERY, CONTACT } = DATA;
+const { PRODUCTS, VIDEOS, GALLERY, CONTACT } = DATA;
+const OBRA = PRODUCTS.obra,
+  LIBRO = PRODUCTS.libro,
+  POD = PRODUCTS.podcast;
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
-const esc = (s) =>
-  String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
-const bs = (n) => "Bs " + (Math.round(n * 100) / 100).toLocaleString("es-BO");
-const evDate = (e) => new Date(`${e.d}T${e.h}`);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+const bs = (n) => "Bs " + Number(n).toLocaleString("es-BO");
 const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
-const fmtLong = (e) => cap(evDate(e).toLocaleDateString("es-BO", { weekday: "long", day: "numeric", month: "long" })) + " · " + e.h;
-const dayMon = (e) => {
-  const d = evDate(e);
-  return { day: d.getDate(), mon: d.toLocaleDateString("es-BO", { month: "short" }).replace(".", ""), wd: d.toLocaleDateString("es-BO", { weekday: "short" }).replace(".", "") };
-};
-const venueOf = (e) => VENUES.find((v) => v.id === e.venue);
-const minPrice = (e) => Math.min(...e.zones.map((z) => z.p));
+const fDate = (f) => new Date(`${f.d}T${f.h}`);
+const fLong = (f) => cap(fDate(f).toLocaleDateString("es-BO", { weekday: "long", day: "numeric", month: "long" })) + " · " + f.h;
 const grad = (c) => `linear-gradient(135deg, ${c[0]}, ${c[1]})`;
-const eventColors = (e) => venueOf(e)?.c || ["#ff4f6d", "#8b6cff"];
-/* si una imagen falla, queda el degradado del fondo */
 const img = (src, alt, cls = "") => `<img class="${cls}" src="${esc(src)}" alt="${esc(alt)}" loading="lazy" onerror="this.remove()">`;
+const unit = (p, n) => p.unit[n === 1 ? 0 : 1];
+const waNumber = "+" + CONTACT.whatsapp;
+const upcoming = () => OBRA.funciones.filter((f) => fDate(f) > new Date()).sort((a, b) => fDate(a) - fDate(b));
 
 function qrSVG(text, label) {
   const q = qrcode(0, "M");
@@ -27,17 +24,8 @@ function qrSVG(text, label) {
   q.make();
   return q.createSvgTag({ cellSize: 4, margin: 2, scalable: true, alt: label || "Código QR" });
 }
-function qrDataURL(text) {
-  const q = qrcode(0, "M");
-  q.addData(text);
-  q.make();
-  return q.createDataURL(8, 4);
-}
 
-const now = new Date();
-const UPCOMING = EVENTS.filter((e) => evDate(e) > now).sort((a, b) => evDate(a) - evDate(b));
-
-/* ---------------- almacenamiento local de entradas ---------------- */
+/* ---------------- almacenamiento local ---------------- */
 const store = {
   get(k, d) {
     try {
@@ -52,178 +40,138 @@ const store = {
     } catch {}
   },
 };
-const myTickets = () => store.get("st_tickets", []);
-function saveTicket(t) {
-  const all = myTickets().filter((x) => x.code !== t.code);
-  all.unshift(t);
-  store.set("st_tickets", all);
+const myOrders = () => store.get("st_orders", []);
+function saveOrder(o) {
+  store.set("st_orders", [o, ...myOrders().filter((x) => x.code !== o.code)].slice(0, 30));
   updateCount();
 }
 function updateCount() {
-  const n = myTickets().length;
-  const el = $("#tkCount");
-  el.textContent = n;
-  el.hidden = !n;
+  const n = myOrders().length;
+  $("#ordCount").textContent = n;
+  $("#ordCount").hidden = !n;
+}
+
+/* ---------------- de qué red social viene ---------------- */
+const params = new URLSearchParams(location.search);
+const SOURCE = (() => {
+  const src = params.get("src") || params.get("utm_source");
+  const campaign = params.get("utm_campaign") || params.get("c") || "";
+  if (src) sessionStorage.setItem("st_src", JSON.stringify({ src, campaign }));
+  try {
+    return JSON.parse(sessionStorage.getItem("st_src")) || { src: document.referrer ? new URL(document.referrer).hostname : "directo", campaign: "" };
+  } catch {
+    return { src: "directo", campaign: "" };
+  }
+})();
+
+/* ---------------- servidor ---------------- */
+let SERVER = false;
+let AVAIL = null;
+async function api(path, opts = {}) {
+  const r = await fetch("/api" + path, { headers: { "Content-Type": "application/json" }, ...opts, body: opts.body ? JSON.stringify(opts.body) : undefined });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(j.error || "No pudimos conectar. Intenta de nuevo.");
+  return j;
+}
+async function detectServer() {
+  if (location.protocol === "file:") return false;
+  try {
+    const ctl = new AbortController();
+    setTimeout(() => ctl.abort(), 2000);
+    const r = await fetch("/api/health", { signal: ctl.signal });
+    return r.ok && (await r.json()).ok === true;
+  } catch {
+    return false;
+  }
+}
+async function loadAvailability() {
+  if (!SERVER) return;
+  try {
+    AVAIL = await api("/availability");
+    renderFuncs();
+  } catch {}
 }
 
 /* =====================================================================
-   RENDER DEL CATÁLOGO
+   RENDER
    ===================================================================== */
-const F = { q: "", cat: "all", venue: "all", date: "all", sort: "date" };
-
-function renderStats() {
-  $("#stats").innerHTML = `
-    <li><b>${UPCOMING.length}</b><span>funciones</span></li>
-    <li><b>${VENUES.length}</b><span>teatros y salas</span></li>
-    <li><b>QR</b><span>pago al instante</span></li>`;
+function renderHero() {
+  $("#heroBg").innerHTML = img(OBRA.img, "");
+  $("#heroBg").style.setProperty("--g", grad(OBRA.c));
+  $("#heroTag").textContent = `${OBRA.tag} · En cartelera`;
+  $("#heroTitle").textContent = OBRA.t;
+  $("#heroLead").textContent = OBRA.long;
+  const next = upcoming();
+  $("#heroMeta").innerHTML = `
+    <li><b>${next.length ? esc(fLong(next[0])) : "Próximamente"}</b><span>${next.length > 1 ? `y ${next.length - 1} ${next.length - 1 === 1 ? "función más" : "funciones más"}` : "Función"}</span></li>
+    <li><b>${esc(OBRA.venue)}</b><span>${esc(OBRA.addr)}</span></li>
+    <li><b>${bs(OBRA.price)}</b><span>por entrada</span></li>`;
+  $("#heroBuy").textContent = `Comprar entradas · ${bs(OBRA.price)}`;
+  if (!next.length) $("#heroBuy").disabled = true;
+  $("#tape").innerHTML = Array(2)
+    .fill(["✺ Entradas a " + bs(OBRA.price), "✺ Pago con QR", "✺ Tu entrada llega por WhatsApp", "✺ " + OBRA.t, "✺ El libro ya está a la venta", "✺ Podcast: muy pronto"].map((t) => `<span>${esc(t)}</span>`).join(""))
+    .map((h) => `<div>${h}${h}</div>`)
+    .join("");
+  tickCd();
 }
-
-/* Carrusel de destacados */
-let featIdx = 0,
-  featTimer;
-function renderFeature() {
-  const list = UPCOMING.filter((e) => e.featured);
-  const items = list.length ? list : UPCOMING.slice(0, 3);
-  if (!items.length) return ($("#feature").hidden = true);
-  const e = items[featIdx % items.length];
-  const v = venueOf(e);
-  $("#feature").innerHTML = `
-    <article class="feat-card" style="--g:${grad(eventColors(e))}">
-      <div class="feat-img">${img(e.img, e.t)}<span class="badge">${CATEGORIES[e.cat].i} ${CATEGORIES[e.cat].n}</span></div>
-      <div class="feat-body">
-        <small>Destacado · ${esc(v.n)}</small>
-        <h3>${esc(e.t)}</h3>
-        <p>${esc(fmtLong(e))}</p>
-        <div class="cd" data-cd="${e.d}T${e.h}"></div>
-        <div class="feat-foot"><span>desde <b>${bs(minPrice(e))}</b></span><button class="btn" type="button" data-buy="${e.id}">Comprar</button></div>
-      </div>
-    </article>
-    <div class="dots" role="tablist" aria-label="Eventos destacados">${items
-      .map((x, i) => `<button type="button" role="tab" aria-label="${esc(x.t)}" aria-selected="${i === featIdx % items.length}" data-feat="${i}"></button>`)
-      .join("")}</div>`;
-  tickCountdowns();
-  clearTimeout(featTimer);
-  featTimer = setTimeout(() => {
-    featIdx++;
-    renderFeature();
-  }, 7000);
+function tickCd() {
+  const f = upcoming()[0];
+  const el = $("#heroCd");
+  if (!f) return (el.innerHTML = "");
+  const ms = fDate(f) - new Date();
+  const d = Math.floor(ms / 864e5),
+    h = Math.floor(ms / 36e5) % 24,
+    m = Math.floor(ms / 6e4) % 60;
+  el.innerHTML = `<small>Faltan</small><span><b>${d}</b>días</span><span><b>${String(h).padStart(2, "0")}</b>horas</span><span><b>${String(m).padStart(2, "0")}</b>min</span>`;
 }
-$("#feature").addEventListener("click", (ev) => {
-  const d = ev.target.closest("[data-feat]");
-  if (d) {
-    featIdx = +d.dataset.feat;
-    renderFeature();
-  }
-});
+setInterval(tickCd, 30000);
 
-function tickCountdowns() {
-  $$("[data-cd]").forEach((el) => {
-    const ms = new Date(el.dataset.cd) - new Date();
-    if (ms <= 0) return (el.textContent = "¡Es hoy!");
-    const d = Math.floor(ms / 864e5),
-      h = Math.floor(ms / 36e5) % 24,
-      m = Math.floor(ms / 6e4) % 60;
-    el.innerHTML = `<span><b>${d}</b>días</span><span><b>${String(h).padStart(2, "0")}</b>horas</span><span><b>${String(m).padStart(2, "0")}</b>min</span>`;
-  });
-}
-setInterval(tickCountdowns, 30000);
-
-function renderChips() {
-  const counts = {};
-  UPCOMING.forEach((e) => (counts[e.cat] = (counts[e.cat] || 0) + 1));
-  const chips = [["all", "Todo", "✦", UPCOMING.length], ...Object.entries(CATEGORIES).filter(([k]) => counts[k]).map(([k, c]) => [k, c.n, c.i, counts[k]])];
-  $("#chips").innerHTML = chips
-    .map(([k, n, i, c]) => `<button type="button" class="chip${F.cat === k ? " on" : ""}" data-cat="${k}" aria-pressed="${F.cat === k}"><span aria-hidden="true">${i}</span>${esc(n)}<small>${c}</small></button>`)
+function renderFuncs() {
+  $("#obraSub").textContent = `${OBRA.venue} · ${OBRA.dur} · ${OBRA.age} · ${bs(OBRA.price)} por entrada`;
+  const list = OBRA.funciones.slice().sort((a, b) => fDate(a) - fDate(b));
+  $("#funcs").innerHTML = list
+    .map((f) => {
+      const past = fDate(f) < new Date();
+      const left = AVAIL ? AVAIL.obra[f.id] : null;
+      const off = past || left === 0;
+      const d = fDate(f);
+      const note = past ? "Función realizada" : left === 0 ? "Agotado" : left != null && left <= 30 ? `¡Quedan ${left}!` : "Entradas disponibles";
+      return `
+      <article class="func${off ? " off" : ""}">
+        <div class="func-date"><b>${d.getDate()}</b>${esc(d.toLocaleDateString("es-BO", { month: "short" }).replace(".", ""))}</div>
+        <div class="func-info"><h3>${esc(cap(d.toLocaleDateString("es-BO", { weekday: "long" })))} · ${esc(f.h)}</h3><p class="${left != null && left <= 30 && !off ? "hot" : ""}">${esc(note)}</p></div>
+        <button class="btn" type="button" data-buy="obra" data-f="${f.id}" ${off ? "disabled" : ""}>${off ? (past ? "Finalizada" : "Agotado") : "Comprar"}</button>
+      </article>`;
+    })
     .join("");
 }
 
-function renderVenueFilter() {
-  $("#fVenue").innerHTML =
-    `<option value="all">Todos los teatros</option>` + VENUES.map((v) => `<option value="${v.id}">${esc(v.n)}</option>`).join("");
+function renderBook() {
+  const b = LIBRO;
+  $("#bookBox").style.setProperty("--g", grad(b.c));
+  $("#bookBox").innerHTML = `
+    <div class="book-art"><div class="book-cover">${img(b.img, "Portada de " + b.t)}<span class="spine"></span></div></div>
+    <div class="book-copy">
+      <span class="kicker">${esc(b.tag)}</span>
+      <h2>${esc(b.t)}</h2>
+      <p class="by">por ${esc(b.author)}</p>
+      <p>${esc(b.long)}</p>
+      <ul class="ticks">${b.delivery.map((d) => `<li>${esc(d.n)}</li>`).join("")}</ul>
+      <div class="book-buy"><span class="price">${bs(b.price)}</span><button class="btn lg" type="button" data-buy="libro">Comprar el libro</button></div>
+    </div>`;
 }
 
-function matchesDate(e) {
-  const t = evDate(e),
-    day = 864e5;
-  if (F.date === "week") return t - now <= 7 * day;
-  if (F.date === "month") return t - now <= 30 * day;
-  if (F.date === "weekend") {
-    const fri = new Date(now);
-    fri.setHours(0, 0, 0, 0);
-    const wd = now.getDay(); // 0 = domingo … 6 = sábado
-    fri.setDate(fri.getDate() + (wd === 6 ? -1 : wd === 0 ? -2 : 5 - wd));
-    const mon = new Date(fri.getTime() + 3 * day);
-    return t >= fri && t < mon;
-  }
-  return true;
-}
-
-const norm = (s) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
-function filtered() {
-  const q = norm(F.q.trim());
-  let list = UPCOMING.filter(
-    (e) =>
-      (F.cat === "all" || e.cat === F.cat) &&
-      (F.venue === "all" || e.venue === F.venue) &&
-      matchesDate(e) &&
-      (!q || norm([e.t, e.s, venueOf(e).n, CATEGORIES[e.cat].n].join(" ")).includes(q)),
-  );
-  if (F.sort === "price") list = [...list].sort((a, b) => minPrice(a) - minPrice(b));
-  if (F.sort === "name") list = [...list].sort((a, b) => a.t.localeCompare(b.t, "es"));
-  return list;
-}
-
-function eventCard(e) {
-  const v = venueOf(e),
-    dm = dayMon(e);
-  return `
-  <article class="ev" style="--g:${grad(eventColors(e))}">
-    <button class="ev-hit" type="button" data-buy="${e.id}" aria-label="Ver entradas para ${esc(e.t)}"></button>
-    <div class="ev-img">${img(e.img, "")}
-      <span class="date"><b>${dm.day}</b>${esc(dm.mon)}</span>
-      <span class="badge">${CATEGORIES[e.cat].i} ${esc(CATEGORIES[e.cat].n)}</span>
-    </div>
-    <div class="ev-body">
-      <p class="ev-venue">${esc(v.n)}${v.own ? ' <span class="own">Sala propia</span>' : ""}</p>
-      <h3>${esc(e.t)}</h3>
-      <p class="ev-meta">${esc(dm.wd)} ${dm.day} ${esc(dm.mon)} · ${e.h} · ${esc(e.age)}</p>
-      <p class="ev-desc">${esc(e.s)}</p>
-      <div class="ev-foot"><span>desde <b>${bs(minPrice(e))}</b></span><span class="btn sm">Entradas</span></div>
-    </div>
-  </article>`;
-}
-
-function renderEvents() {
-  const list = filtered();
-  $("#events").innerHTML = list.map(eventCard).join("");
-  $("#empty").hidden = !!list.length;
-  const parts = [];
-  if (F.cat !== "all") parts.push(CATEGORIES[F.cat].n);
-  if (F.venue !== "all") parts.push(VENUES.find((v) => v.id === F.venue).n);
-  if (F.q) parts.push(`“${F.q}”`);
-  $("#resultsLabel").textContent =
-    `${list.length} ${list.length === 1 ? "función" : "funciones"}` + (parts.length ? " · " + parts.join(" · ") : " disponibles");
-}
-
-function renderVenues() {
-  $("#venues").innerHTML = VENUES.map((v) => {
-    const n = UPCOMING.filter((e) => e.venue === v.id).length;
-    return `
-    <article class="venue" style="--g:${grad(v.c)}">
-      <div class="venue-img">${img(v.img, "")}</div>
-      <div class="venue-body">
-        <h3>${esc(v.n)}</h3>
-        <p>${esc(v.addr)}<br>Capacidad: ${v.cap.toLocaleString("es-BO")} personas</p>
-        <button class="link" type="button" data-venue="${v.id}">${n} ${n === 1 ? "función" : "funciones"} →</button>
-      </div>
-    </article>`;
-  }).join("");
+function renderSoon() {
+  $("#soonBox").style.setProperty("--g", grad(POD.c));
+  $("#soonTitle").textContent = POD.t;
+  $("#soonText").textContent = POD.long;
+  $("#soonArt").innerHTML = img(POD.img, "") + `<div class="eq" aria-hidden="true">${"<i></i>".repeat(14)}</div>`;
 }
 
 function renderVideos() {
   $("#vids").innerHTML = VIDEOS.map(
     (v, i) => `
-    <button class="vid" type="button" data-vid="${i}" style="--g:${grad(v.event ? eventColors(EVENTS.find((e) => e.id === v.event)) : ["#ff4f6d", "#8b6cff"])}">
+    <button class="vid" type="button" data-vid="${i}" style="--g:${grad((PRODUCTS[v.product] || POD).c)}">
       ${img(v.poster, "")}
       <span class="play" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span>
       <span class="vid-txt"><small>${esc(v.tag)}</small>${esc(v.t)}</span>
@@ -232,58 +180,8 @@ function renderVideos() {
 }
 
 function renderGallery() {
-  $("#gal").innerHTML = GALLERY.map(
-    (p, i) => `
-    <figure class="g-item gi${i + 1}">
-      ${img(p.src, p.alt)}
-      <figcaption><small>${esc(p.tag)}</small>${esc(p.title)}</figcaption>
-    </figure>`,
-  ).join("");
+  $("#gal").innerHTML = GALLERY.map((p, i) => `<figure class="g-item gi${i + 1}">${img(p.src, p.alt)}<figcaption><small>${esc(p.tag)}</small>${esc(p.title)}</figcaption></figure>`).join("");
 }
-
-/* ---------------- eventos de filtros ---------------- */
-function applyFilters(scroll) {
-  renderChips();
-  renderEvents();
-  if (scroll) $("#eventos").scrollIntoView({ behavior: "smooth" });
-}
-$("#chips").addEventListener("click", (ev) => {
-  const c = ev.target.closest("[data-cat]");
-  if (!c) return;
-  F.cat = c.dataset.cat;
-  applyFilters();
-});
-$("#fVenue").onchange = (ev) => ((F.venue = ev.target.value), applyFilters());
-$("#fDate").onchange = (ev) => ((F.date = ev.target.value), applyFilters());
-$("#fSort").onchange = (ev) => ((F.sort = ev.target.value), applyFilters());
-$("#search").onsubmit = (ev) => {
-  ev.preventDefault();
-  F.q = $("#q").value;
-  applyFilters(true);
-};
-$("#q").addEventListener("input", (ev) => {
-  F.q = ev.target.value;
-  renderEvents();
-});
-$("#clearFilters").onclick = () => {
-  Object.assign(F, { q: "", cat: "all", venue: "all", date: "all" });
-  $("#q").value = "";
-  $("#fVenue").value = "all";
-  $("#fDate").value = "all";
-  applyFilters();
-};
-document.addEventListener("click", (ev) => {
-  const b = ev.target.closest("[data-buy]");
-  if (b) return openCheckout(+b.dataset.buy, b);
-  const v = ev.target.closest("[data-venue]");
-  if (v) {
-    F.venue = v.dataset.venue;
-    $("#fVenue").value = F.venue;
-    applyFilters(true);
-  }
-  const vid = ev.target.closest("[data-vid]");
-  if (vid) openVideo(+vid.dataset.vid, vid);
-});
 
 /* ---------------- menú móvil ---------------- */
 $("#burger").onclick = () => {
@@ -297,6 +195,18 @@ $("#nav").addEventListener("click", (ev) => {
   }
 });
 window.addEventListener("scroll", () => $("#top").classList.toggle("scrolled", scrollY > 10), { passive: true });
+
+document.addEventListener("click", (ev) => {
+  const b = ev.target.closest("[data-buy]");
+  if (b) return openCheckout(b.dataset.buy, b, b.dataset.f);
+  const vid = ev.target.closest("[data-vid]");
+  if (vid) return openVideo(+vid.dataset.vid, vid);
+  const ord = ev.target.closest("[data-track]");
+  if (ord) {
+    const o = myOrders().find((x) => x.code === ord.dataset.track);
+    if (o) (closeLayer($("#tk")), resumeOrder(o, ord));
+  }
+});
 
 /* =====================================================================
    VENTANAS (modal / drawer) con manejo de foco
@@ -339,40 +249,46 @@ document.addEventListener("keydown", (ev) => {
 /* =====================================================================
    COMPRA
    ===================================================================== */
-let S = null; // estado de la compra en curso
-let pollTimer = null,
-  expTimer = null;
-const stopTimers = () => (clearInterval(pollTimer), clearInterval(expTimer));
+let S = null;
+let poll = null;
+const stopPoll = () => clearInterval(poll);
 const body = $("#mbody");
 
-function openCheckout(id, opener) {
-  const ev = EVENTS.find((e) => e.id === id);
-  if (!ev) return;
-  stopTimers();
-  S = { ev, zone: null, qty: 1, step: 0, pay: "qr", buyer: store.get("st_buyer", {}), avail: null, order: null };
-  const v = venueOf(ev);
-  $(".modal", $("#ov")).style.setProperty("--g", grad(eventColors(ev)));
-  $("#mhead").innerHTML = `
-    <div class="m-img">${img(ev.img, "")}</div>
-    <div><small>${CATEGORIES[ev.cat].i} ${esc(CATEGORIES[ev.cat].n)} · ${esc(v.n)}</small><h2 id="mt">${esc(ev.t)}</h2><p>${esc(fmtLong(ev))}</p></div>`;
+function openCheckout(pid, opener, funcion) {
+  const p = PRODUCTS[pid];
+  if (!p || !p.price) return;
+  stopPoll();
+  const saved = store.get("st_buyer", {});
+  const fs = upcoming();
+  S = {
+    p,
+    step: 0,
+    qty: 1,
+    funcion: funcion || (fs.find((f) => !AVAIL || AVAIL.obra[f.id] > 0) || {}).id || null,
+    delivery: p.delivery ? p.delivery[0].id : null,
+    buyer: { n: saved.n || "", ci: saved.ci || "", em: saved.em || "", addr: "" },
+    order: null,
+  };
+  head(p);
   openLayer($("#ov"), opener, () => {
-    stopTimers();
+    stopPoll();
     S = null;
   });
   draw();
-  Payments.availability(id).then((a) => {
-    if (!S || S.ev.id !== id) return;
-    S.avail = a;
-    S.zone = ev.zones.find((z) => a[z.id] > 0)?.id || null;
-    if (S.step === 0) draw();
-  });
+  loadAvailability().then(() => S && S.step === 0 && draw());
+}
+
+function head(p) {
+  $(".modal", $("#ov")).style.setProperty("--g", grad(p.c));
+  $("#mhead").innerHTML = `
+    <div class="m-img">${img(p.img, "")}</div>
+    <div><small>${esc(p.tag)}${p.venue ? " · " + esc(p.venue) : ""}</small><h2 id="mt">${esc(p.t)}</h2><p>${bs(p.price)} ${p.type === "show" ? "por entrada" : "c/u"}</p></div>`;
 }
 
 function setStep(n) {
   S.step = n;
   draw();
 }
-
 function draw() {
   if (!S) return;
   $$("#progress li").forEach((li, i) => {
@@ -382,356 +298,287 @@ function draw() {
   body.classList.remove("in");
   void body.offsetWidth;
   body.classList.add("in");
-  [stepZones, stepBuyer, stepPay, stepDone][S.step]();
+  [stepChoose, stepBuyer, stepPay, stepDone][S.step]();
+}
+const total = () => S.p.price * S.qty;
+const maxQty = () => {
+  if (!AVAIL) return S.p.maxQty;
+  const left = S.p.id === "obra" ? AVAIL.obra[S.funcion] ?? 0 : AVAIL.libro;
+  return Math.max(0, Math.min(S.p.maxQty, left));
+};
+function detalle() {
+  const f = S.p.id === "obra" && OBRA.funciones.find((x) => x.id === S.funcion);
+  return `${S.qty} ${unit(S.p, S.qty)} · ${S.p.t}` + (f ? ` · ${fLong(f)}` : "");
 }
 
-const total = () => (S.zone ? S.ev.zones.find((z) => z.id === S.zone).p * S.qty : 0);
-const zoneName = () => S.ev.zones.find((z) => z.id === S.zone)?.n || "";
-
-/* Paso 1: zona y cantidad */
-function stepZones() {
-  const e = S.ev,
-    v = venueOf(e);
-  if (!S.avail) {
-    body.innerHTML = `<p class="about">${esc(e.long || e.s)}</p><div class="loading">Consultando disponibilidad…</div>`;
-    return;
+/* Paso 1: función / entrega y cantidad */
+function stepChoose() {
+  const p = S.p;
+  let opts = "";
+  if (p.id === "obra") {
+    opts = `<fieldset class="zones"><legend>Elige la función</legend>${OBRA.funciones
+      .slice()
+      .sort((a, b) => fDate(a) - fDate(b))
+      .map((f) => {
+        const past = fDate(f) < new Date();
+        const left = AVAIL ? AVAIL.obra[f.id] : null;
+        const off = past || left === 0;
+        const note = past ? "Finalizada" : left === 0 ? "Agotado" : left != null && left <= 30 ? `¡Quedan ${left}!` : "Disponible";
+        return `<label class="zone${off ? " off" : ""}"><input type="radio" name="opt" value="${f.id}" ${S.funcion === f.id ? "checked" : ""} ${off ? "disabled" : ""}>
+          <span class="z-n">${esc(fLong(f))}</span><span class="z-s${left != null && left <= 30 && !off ? " hot" : ""}">${note}</span><span class="z-p">${bs(p.price)}</span></label>`;
+      })
+      .join("")}</fieldset>`;
+  } else {
+    opts = `<p class="about">${esc(p.s)}</p><fieldset class="zones"><legend>¿Cómo lo recibes?</legend>${p.delivery
+      .map((d) => `<label class="zone"><input type="radio" name="opt" value="${d.id}" ${S.delivery === d.id ? "checked" : ""}><span class="z-n">${esc(d.n)}</span></label>`)
+      .join("")}</fieldset>`;
   }
-  const soldOut = e.zones.every((z) => !S.avail[z.id]);
   body.innerHTML = `
-    <p class="about">${esc(e.long || e.s)}</p>
-    <ul class="facts"><li><b>Lugar</b>${esc(v.n)} — ${esc(v.addr)}</li><li><b>Duración</b>${esc(e.dur)}</li><li><b>Edad</b>${esc(e.age)}</li></ul>
-    <fieldset class="zones"><legend>Elige tu zona</legend>
-      ${e.zones
-        .map((z) => {
-          const left = S.avail[z.id];
-          const note = !left ? "Agotado" : left <= 20 ? `¡Quedan ${left}!` : "Disponible";
-          return `<label class="zone${!left ? " off" : ""}">
-            <input type="radio" name="zone" value="${z.id}" ${S.zone === z.id ? "checked" : ""} ${!left ? "disabled" : ""}>
-            <span class="z-n">${esc(z.n)}</span><span class="z-s${left && left <= 20 ? " hot" : ""}">${note}</span><span class="z-p">${bs(z.p)}</span>
-          </label>`;
-        })
-        .join("")}
-    </fieldset>
-    ${
-      soldOut
-        ? `<p class="error">Esta función está agotada.</p>`
-        : `<div class="qty-row"><span>Cantidad</span><div class="qty"><button type="button" id="qm" aria-label="Quitar una">−</button><output id="qv" aria-live="polite">${S.qty}</output><button type="button" id="qp" aria-label="Agregar una">+</button></div></div>`
-    }
+    ${opts}
+    <div class="qty-row"><span>Cantidad de ${esc(p.unit[1])}</span><div class="qty"><button type="button" id="qm" aria-label="Quitar una">−</button><output id="qv" aria-live="polite">${S.qty}</output><button type="button" id="qp" aria-label="Agregar una">+</button></div></div>
+    <p class="msg tiny" id="qnote"></p>
     <div class="summary"><span>Total</span><b id="tt">${bs(total())}</b></div>
-    <div class="nav"><span></span><button class="btn" id="nx" type="button" ${soldOut ? "disabled" : ""}>Continuar</button></div>`;
-  if (soldOut) return;
-  const maxQty = () => Math.min(10, S.avail[S.zone] || 0);
+    <div class="nav"><span></span><button class="btn" id="nx" type="button">Continuar</button></div>`;
   const upd = () => {
-    S.qty = Math.max(1, Math.min(S.qty, maxQty()));
+    const mx = maxQty();
+    S.qty = Math.max(1, Math.min(S.qty, mx || 1));
     $("#qv").textContent = S.qty;
     $("#tt").textContent = bs(total());
     $("#qm").disabled = S.qty <= 1;
-    $("#qp").disabled = S.qty >= maxQty();
+    $("#qp").disabled = S.qty >= mx;
+    $("#qnote").textContent = S.qty >= S.p.maxQty ? `Máximo ${S.p.maxQty} por pedido.` : "";
+    $("#nx").disabled = !mx || (p.id === "obra" && !S.funcion);
   };
-  $$('input[name="zone"]', body).forEach((r) => (r.onchange = () => ((S.zone = r.value), upd())));
+  $$('input[name="opt"]', body).forEach(
+    (r) =>
+      (r.onchange = () => {
+        if (p.id === "obra") S.funcion = r.value;
+        else S.delivery = r.value;
+        upd();
+      }),
+  );
   $("#qm").onclick = () => (S.qty--, upd());
   $("#qp").onclick = () => (S.qty++, upd());
   upd();
   $("#nx").onclick = () => setStep(1);
 }
 
-/* Paso 2: datos del comprador */
+/* Paso 2: datos */
 function stepBuyer() {
   const u = S.buyer;
+  const isObra = S.p.id === "obra";
+  const needsAddr = !isObra && S.p.delivery.find((d) => d.id === S.delivery)?.needsAddress;
   body.innerHTML = `
     <form id="bf" novalidate>
       <label for="bn">Nombre completo</label><input id="bn" autocomplete="name" value="${esc(u.n)}" required>
-      <div class="row"><div><label for="bci">CI / Documento</label><input id="bci" inputmode="numeric" value="${esc(u.ci)}" required></div>
-      <div><label for="btel">Celular</label><input id="btel" type="tel" autocomplete="tel" placeholder="7XXXXXXX" value="${esc(u.tel)}" required></div></div>
-      <label for="bem">Correo (te enviaremos la entrada)</label><input id="bem" type="email" autocomplete="email" value="${esc(u.em)}" required>
+      ${isObra ? `<label for="bci">CI / Documento <small>(para validar tu entrada en la puerta)</small></label><input id="bci" inputmode="numeric" value="${esc(u.ci)}" required>` : ""}
+      ${needsAddr ? `<label for="baddr">Dirección de envío</label><input id="baddr" autocomplete="street-address" value="${esc(u.addr)}" placeholder="Barrio, calle, número, referencia" required>` : ""}
+      <label for="bem">Correo <small>(opcional)</small></label><input id="bem" type="email" autocomplete="email" value="${esc(u.em)}">
       <p class="error" id="er" role="alert"></p>
-      <div class="summary"><span>${S.qty} × ${esc(zoneName())}</span><b>${bs(total())}</b></div>
+      <div class="summary"><span>${esc(detalle())}</span><b>${bs(total())}</b></div>
       <div class="nav"><button class="btn ghost" id="bk" type="button">Atrás</button><button class="btn" type="submit">Ir a pagar</button></div>
     </form>`;
   $("#bk").onclick = () => setStep(0);
   $("#bf").onsubmit = (ev) => {
     ev.preventDefault();
-    const v = { n: $("#bn").value.trim(), ci: $("#bci").value.trim(), tel: $("#btel").value.replace(/\s/g, ""), em: $("#bem").value.trim() };
+    const v = { n: $("#bn").value.trim(), ci: $("#bci")?.value.trim() || "", em: $("#bem").value.trim(), addr: $("#baddr")?.value.trim() || "" };
     const bad = [];
-    if (v.n.length < 3) bad.push("bn");
-    if (!/^\d{5,}[A-Za-z0-9-]*$/.test(v.ci)) bad.push("bci");
-    if (!/^\+?\d{7,}$/.test(v.tel)) bad.push("btel");
-    if (!/^\S+@\S+\.\S+$/.test(v.em)) bad.push("bem");
-    ["bn", "bci", "btel", "bem"].forEach((k) => {
-      $("#" + k).classList.toggle("err", bad.includes(k));
-      $("#" + k).setAttribute("aria-invalid", bad.includes(k));
+    if (v.n.length < 3 || !v.n.includes(" ")) bad.push("bn");
+    if (isObra && !/^\d{5,}[A-Za-z0-9-]*$/.test(v.ci)) bad.push("bci");
+    if (needsAddr && v.addr.length < 5) bad.push("baddr");
+    if (v.em && !/^\S+@\S+\.\S+$/.test(v.em)) bad.push("bem");
+    ["bn", "bci", "baddr", "bem"].forEach((k) => {
+      const el = $("#" + k);
+      if (!el) return;
+      el.classList.toggle("err", bad.includes(k));
+      el.setAttribute("aria-invalid", bad.includes(k));
     });
     if (bad.length) {
-      $("#er").textContent = "Revisa los campos marcados.";
+      $("#er").textContent = bad.includes("bn") && v.n && !v.n.includes(" ") ? "Escribe tu nombre y apellido." : "Revisa los campos marcados.";
       $("#" + bad[0]).focus();
       return;
     }
     S.buyer = v;
-    store.set("st_buyer", v);
-    S.order = null;
+    store.set("st_buyer", { n: v.n, ci: v.ci, em: v.em });
     setStep(2);
   };
 }
 
-/* Paso 3: pago */
-function stepPay() {
-  stopTimers();
-  body.innerHTML = `
-    <div class="summary"><span>${S.qty} × ${esc(zoneName())}</span><b>${bs(total())}</b></div>
-    <div class="tabs" role="tablist">
-      <button type="button" role="tab" data-m="qr" aria-selected="${S.pay === "qr"}">${icon("qr")} Pagar con QR</button>
-      <button type="button" role="tab" data-m="card" aria-selected="${S.pay === "card"}">${icon("card")} Tarjeta</button>
-    </div>
-    <div id="pm"></div>
-    <p class="error" id="er" role="alert"></p>
-    <div class="nav" id="pnav"><button class="btn ghost" id="bk" type="button">Atrás</button><span></span></div>`;
-  $$(".tabs button", body).forEach(
-    (b) =>
-      (b.onclick = () => {
-        if (S.pay === b.dataset.m) return;
-        S.pay = b.dataset.m;
-        S.order = null;
-        stepPay();
-      }),
-  );
-  $("#bk").onclick = () => (stopTimers(), setStep(1));
-  S.pay === "qr" ? payQR() : payCard();
-}
-
-function icon(n) {
-  if (n === "qr")
-    return `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h3v3h-3zM18 18h3v3h-3zM14 19h2M19 14h2"/></svg>`;
-  return `<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20M6 15h4"/></svg>`;
-}
-
-async function payQR() {
-  const pm = $("#pm");
-  pm.innerHTML = `<div class="loading">Generando tu QR de pago…</div>`;
-  try {
-    if (!S.order || S.order.method === "card" || Date.now() > S.order.qr?.expiresAt) {
-      const o = await Payments.createOrder({ eventId: S.ev.id, zone: S.zone, qty: S.qty, buyer: S.buyer, method: "qr" });
-      if (!S) return;
-      S.order = { ...o, method: "qr" };
-    }
-  } catch (e) {
-    pm.innerHTML = "";
-    $("#er").textContent = e.message;
-    return;
-  }
-  const o = S.order;
-  const qrImg = o.qr.image ? `<img src="${esc(o.qr.image)}" alt="Código QR de pago">` : qrSVG(o.qr.payload, "Código QR de pago");
-  const dl = o.qr.image || qrDataURL(o.qr.payload);
-  pm.innerHTML = `
-    <div class="qrpay">
-      <div class="qr-frame">${qrImg}<i class="scan"></i></div>
-      <div class="qr-info">
-        <p class="status" id="qst"><span class="dot"></span>Esperando tu pago</p>
-        <p class="amount">${bs(o.amount)}</p>
-        <ol class="howto"><li>Abre la app de tu banco.</li><li>Elige <b>Pagar con QR</b> y escanea este código.</li><li>Confirma el pago. Te daremos tu entrada al instante.</li></ol>
-        <p class="exp">El QR vence en <b id="qexp">--:--</b></p>
-        <a class="btn ghost sm" href="${esc(dl)}" download="QR-${esc(o.id)}.png">Descargar QR</a>
-        <p class="msg tiny">¿Compras desde el celular? Descarga el QR y súbelo desde la app de tu banco.</p>
-        <p class="msg tiny">Orden <b>${esc(o.id)}</b></p>
-      </div>
-    </div>`;
-  if (Payments.canSimulate) {
-    $("#pnav span").outerHTML = `<button class="btn" id="sim" type="button" title="Solo para pruebas">Simular pago recibido</button>`;
-    $("#sim").onclick = async () => {
-      $("#sim").disabled = true;
-      try {
-        const r = await Payments.simulatePaid(o.id);
-        handleStatus(r);
-      } catch (e) {
-        $("#er").textContent = e.message;
-        $("#sim").disabled = false;
+/* Paso 3: pago por WhatsApp */
+async function stepPay() {
+  if (!S.order) {
+    body.innerHTML = `<div class="loading">Preparando tu pedido…</div>`;
+    try {
+      if (SERVER) {
+        const o = await api("/orders", { method: "POST", body: { product: S.p.id, funcion: S.funcion, delivery: S.delivery, qty: S.qty, buyer: S.buyer, source: SOURCE } });
+        if (!S) return;
+        S.order = o;
+      } else {
+        S.order = localOrder();
       }
-    };
-  }
-  const exp = () => {
-    const ms = o.qr.expiresAt - Date.now();
-    if (ms <= 0) {
-      stopTimers();
-      $("#qst").innerHTML = "QR vencido";
-      $("#qst").className = "status bad";
-      $(".qrpay").classList.add("expired");
-      $("#pnav").lastElementChild.outerHTML = `<button class="btn" id="renew" type="button">Generar nuevo QR</button>`;
-      $("#renew").onclick = () => ((S.order = null), stepPay());
-      return;
-    }
-    $("#qexp").textContent = `${Math.floor(ms / 6e4)}:${String(Math.floor(ms / 1e3) % 60).padStart(2, "0")}`;
-  };
-  exp();
-  expTimer = setInterval(exp, 1000);
-  pollTimer = setInterval(async () => {
-    try {
-      handleStatus(await Payments.status(o.id));
-    } catch {}
-  }, PAY_CONFIG.pollMs);
-}
-
-function handleStatus(r) {
-  if (!S || !r) return;
-  if (r.status === "paid" && r.ticket) {
-    stopTimers();
-    finish(r.ticket);
-  } else if (r.status === "failed") {
-    stopTimers();
-    $("#er").textContent = "El pago fue rechazado. Intenta de nuevo.";
-    S.order = null;
-  }
-}
-
-function payCard() {
-  $("#pm").innerHTML = `
-    <form id="cf" novalidate>
-      <div class="cc" id="cc"><div class="cc-f"><i class="cc-chip"></i><div class="cc-num" id="pn">•••• •••• •••• ••••</div><div class="cc-r"><span id="ph">NOMBRE APELLIDO</span><span id="pe">MM/AA</span></div></div><div class="cc-b"><i></i><span>CVV <b id="pc">•••</b></span></div></div>
-      <label for="cn">Número de tarjeta</label><input id="cn" inputmode="numeric" maxlength="19" placeholder="0000 0000 0000 0000" autocomplete="cc-number">
-      <label for="ch">Nombre en la tarjeta</label><input id="ch" autocomplete="cc-name">
-      <div class="row"><div><label for="ex">Vence</label><input id="ex" inputmode="numeric" maxlength="5" placeholder="MM/AA" autocomplete="cc-exp"></div>
-      <div><label for="cv">CVV</label><input id="cv" inputmode="numeric" maxlength="4" autocomplete="cc-csc"></div></div>
-      <p class="msg tiny">🔒 Los datos de tu tarjeta no se guardan en esta página.</p>
-      <button type="submit" hidden></button>
-    </form>`;
-  $("#pnav span").outerHTML = `<button class="btn" id="paycard" type="button">Pagar ${bs(total())}</button>`;
-  const cn = $("#cn"),
-    ex = $("#ex");
-  cn.oninput = () => (cn.value = cn.value.replace(/\D/g, "").slice(0, 16).replace(/(\d{4})(?=\d)/g, "$1 "));
-  ex.oninput = () => {
-    const v = ex.value.replace(/\D/g, "").slice(0, 4);
-    ex.value = v.length > 2 ? v.slice(0, 2) + "/" + v.slice(2) : v;
-  };
-  const up = () => {
-    $("#pn").textContent = cn.value.replace(/\D/g, "").padEnd(16, "•").replace(/(.{4})(?=.)/g, "$1 ");
-    $("#ph").textContent = $("#ch").value.toUpperCase() || "NOMBRE APELLIDO";
-    $("#pe").textContent = ex.value || "MM/AA";
-    $("#pc").textContent = $("#cv").value.replace(/./g, "•") || "•••";
-  };
-  ["cn", "ch", "ex", "cv"].forEach((k) => {
-    $("#" + k).addEventListener("input", up);
-    $("#" + k).addEventListener("focus", () => $("#cc").classList.toggle("flip", k === "cv"));
-  });
-  const go = async () => {
-    const n = cn.value.replace(/\s/g, ""),
-      e = ex.value,
-      cv = $("#cv").value;
-    const [mm, yy] = e.split("/").map(Number);
-    const expired = !mm || new Date(2000 + yy, mm) <= new Date();
-    if (!luhn(n) || $("#ch").value.trim().length < 3 || !/^(0[1-9]|1[0-2])\/\d\d$/.test(e) || expired || !/^\d{3,4}$/.test(cv)) {
-      $("#er").textContent = "Revisa los datos de la tarjeta.";
-      return;
-    }
-    $("#er").textContent = "";
-    const btn = $("#paycard");
-    btn.disabled = true;
-    btn.textContent = "Procesando…";
-    try {
-      const o = await Payments.createOrder({ eventId: S.ev.id, zone: S.zone, qty: S.qty, buyer: S.buyer, method: "card" });
-      const r = await Payments.payCard(o.id, { number: n, name: $("#ch").value.trim(), exp: e });
-      if (r.status === "paid") return finish(r.ticket);
-      throw new Error("El pago fue rechazado.");
-    } catch (err) {
+      saveOrder({ code: S.order.code, key: S.order.key || null, product: S.p.id, detalle: S.order.detalle, amount: S.order.amount, waLink: S.order.waLink, at: Date.now() });
+    } catch (e) {
       if (!S) return;
-      $("#er").textContent = err.message;
-      btn.disabled = false;
-      btn.textContent = `Pagar ${bs(total())}`;
+      body.innerHTML = `<p class="error">${esc(e.message)}</p><div class="nav"><button class="btn ghost" id="bk" type="button">Atrás</button><button class="btn" id="rt" type="button">Reintentar</button></div>`;
+      $("#bk").onclick = () => setStep(0);
+      $("#rt").onclick = () => stepPay();
+      loadAvailability();
+      return;
     }
-  };
-  $("#paycard").onclick = go;
-  $("#cf").onsubmit = (ev) => (ev.preventDefault(), go());
-}
-
-function luhn(n) {
-  if (!/^\d{13,19}$/.test(n)) return false;
-  let s = 0,
-    d = false;
-  for (let i = n.length - 1; i >= 0; i--) {
-    let x = +n[i];
-    if (d && (x *= 2) > 9) x -= 9;
-    s += x;
-    d = !d;
   }
-  return s % 10 === 0;
+  renderPay();
+  if (SERVER && S.order.key) startPoll();
 }
 
-function finish(ticket) {
-  saveTicket(ticket);
-  S.ticket = ticket;
-  setStep(3);
-  burst();
+function localOrder() {
+  const abc = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  const code = "ST-" + Array.from(crypto.getRandomValues(new Uint8Array(5)), (b) => abc[b % 32]).join("");
+  const d = detalle();
+  const extra = [S.buyer.n, S.buyer.ci && "CI " + S.buyer.ci, S.buyer.addr && "Envío: " + S.buyer.addr].filter(Boolean).join(" · ");
+  const text = `Hola, quiero pagar mi pedido ${code}: ${d} — Bs ${total()}\n${extra}`;
+  return { code, detalle: d, amount: total(), status: "nuevo", waLink: `https://wa.me/${CONTACT.whatsapp}?text=${encodeURIComponent(text)}` };
 }
 
-/* Paso 4: entrada emitida */
+const TRACK = [
+  ["nuevo", "Envía tu pedido por WhatsApp", "Toca el botón verde y envía el mensaje que ya está escrito."],
+  ["qr_enviado", "Paga el QR que te enviamos", "Descarga la imagen del QR y págala desde la app de tu banco."],
+  ["comprobante", "Envía tu comprobante", "Manda la foto del comprobante en el mismo chat. Lo validamos enseguida."],
+  ["pagado", "Recibe tu entrada", "Te enviamos tu entrada única por WhatsApp."],
+];
+const trackIdx = (s) => ({ nuevo: 0, esperando_qr: 1, qr_enviado: 1, comprobante: 2, pagado: 3 })[s] ?? 0;
+
+function renderPay() {
+  const o = S.order;
+  const i = trackIdx(o.status);
+  const ended = o.status === "vencido" || o.status === "cancelado";
+  body.innerHTML = `
+    <div class="pay-head">
+      <div><small>Tu pedido</small><strong class="code">${esc(o.code)}</strong></div>
+      <div class="amt"><small>Total a pagar</small><b>${bs(o.amount)}</b></div>
+    </div>
+    <p class="msg">${esc(o.detalle)}</p>
+    ${ended ? `<p class="error">Este pedido ${o.status === "vencido" ? "venció" : "fue cancelado"}. Puedes hacer uno nuevo.</p>` : ""}
+    ${o.rejected ? `<p class="warn">⚠ No pudimos validar tu comprobante: ${esc(o.rejected)}. Envíalo de nuevo en el chat.</p>` : ""}
+    <a class="btn wa block${i > 0 ? " ghost-wa" : ""}" href="${esc(o.waLink)}" target="_blank" rel="noopener" id="waBtn">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2Zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1l-.8 1c-.1.2-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.2-.4.2-.4.7-1.3.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5c-.2 0-.5.1-.7.3-.2.3-.9.9-.9 2.2s.9 2.5 1 2.7c.1.2 1.8 2.8 4.4 3.9 1.6.7 2.3.8 3.1.6.5-.1 1.5-.6 1.7-1.2.2-.6.2-1.1.2-1.2-.1-.1-.3-.2-.5-.3Z"/></svg>
+      ${i > 0 ? "Volver al chat de WhatsApp" : "Abrir WhatsApp y pedir mi QR"}
+    </a>
+    <p class="msg tiny center">¿No se abrió? Escribe al <b>${esc(waNumber)}</b> con tu código <b>${esc(o.code)}</b>.</p>
+    <ol class="track">${TRACK.map(([, t, d], k) => `<li class="${k < i ? "done" : k === i && !ended ? "now" : ""}"><span></span><div><b>${t}</b><p>${d}</p></div></li>`).join("")}</ol>
+    ${SERVER ? `<p class="msg tiny center live-note"><i class="dot"></i> Esta pantalla se actualiza sola. También puedes cerrarla: tu pedido queda en <b>Mis pedidos</b>.</p>` : `<p class="msg tiny center">Guarda tu código. Cuando validemos tu pago te enviamos la entrada por WhatsApp.</p>`}
+    <div class="nav"><button class="btn ghost" id="cl" type="button">Cerrar</button><span></span></div>`;
+  $("#cl").onclick = () => closeLayer($("#ov"));
+}
+
+function startPoll() {
+  stopPoll();
+  const check = async () => {
+    if (!S || !S.order) return stopPoll();
+    try {
+      const o = await api(`/orders/${S.order.code}?k=${S.order.key}`);
+      if (!S) return;
+      const changed = o.status !== S.order.status || o.rejected !== S.order.rejected;
+      S.order = { ...S.order, ...o };
+      if (o.status === "pagado") {
+        stopPoll();
+        setStep(3);
+        burst();
+      } else if (changed && S.step === 2) renderPay();
+      if (["vencido", "cancelado"].includes(o.status)) stopPoll();
+    } catch {}
+  };
+  poll = setInterval(check, 4000);
+  check();
+}
+
+/* Paso 4: listo */
 function stepDone() {
-  const t = S.ticket;
+  const o = S.order;
+  const isObra = S.p.id === "obra";
   body.innerHTML = `
     <div class="done">
       <svg class="ok" viewBox="0 0 52 52" aria-hidden="true"><circle cx="26" cy="26" r="24"/><path d="M14 27l8 8 16-17"/></svg>
-      <h3>¡Listo, ${esc(t.buyer.n.split(" ")[0])}! Tu entrada está confirmada.</h3>
-      <p class="msg">Guardamos tu entrada en <b>Mis entradas</b> y te la enviaremos a ${esc(t.buyer.em)}.</p>
+      <h3>¡Pago confirmado${S.buyer.n ? ", " + esc(S.buyer.n.split(" ")[0]) : ""}!</h3>
+      <p class="msg">${isObra ? "Tu entrada única ya está en tu WhatsApp. También puedes verla aquí:" : "Te escribimos por WhatsApp para coordinar la entrega."}</p>
     </div>
-    ${ticketHTML(t)}
-    <div class="nav"><button class="btn ghost" type="button" data-print="${esc(t.code)}">Imprimir / PDF</button><button class="btn" id="seeTk" type="button">Ver mis entradas</button></div>`;
-  $("#seeTk").onclick = () => {
-    closeLayer($("#ov"));
-    openTickets();
-  };
+    ${
+      isObra && o.ticket
+        ? `<div class="mini-ticket"><div class="t-qr">${qrSVG(o.ticket.link, "QR de tu entrada")}</div><div><small>Código</small><strong>${esc(o.ticket.code)}</strong><p>${esc(o.detalle)}</p><a class="btn sm" href="${esc(o.ticket.link)}" target="_blank" rel="noopener">Abrir mi entrada</a></div></div>`
+        : `<div class="summary"><span>${esc(o.detalle)}</span><b>${bs(o.amount)}</b></div>`
+    }
+    <div class="nav"><span></span><button class="btn" id="cl" type="button">Cerrar</button></div>`;
+  $("#cl").onclick = () => closeLayer($("#ov"));
 }
 
-/* ---------------- entradas ---------------- */
-function ticketHTML(t) {
-  const e = EVENTS.find((x) => x.id === t.eventId);
-  if (!e) return "";
-  const v = venueOf(e);
-  const z = e.zones.find((z) => z.id === t.zone);
-  return `
-  <div class="ticket" style="--g:${grad(eventColors(e))}">
-    <div class="t-main">
-      <small>${esc(v.n)}</small>
-      <h4>${esc(e.t)}</h4>
-      <p>${esc(fmtLong(e))}</p>
-      <dl><div><dt>Zona</dt><dd>${esc(z ? z.n : t.zone)}</dd></div><div><dt>Entradas</dt><dd>${t.qty}</dd></div><div><dt>Total</dt><dd>${bs(t.amount)}</dd></div></dl>
-      <p class="t-who">${esc(t.buyer.n)} · CI ${esc(t.buyer.ci)}</p>
-    </div>
-    <div class="t-stub">
-      <div class="t-qr">${qrSVG(t.code, "QR de la entrada " + t.code)}</div>
-      <strong>${esc(t.code)}</strong>
-      <small>${t.method === "qr" ? "Pagado con QR" : "Pagado con tarjeta"}</small>
-    </div>
-  </div>`;
+/* Retomar un pedido desde "Mis pedidos" */
+function resumeOrder(saved, opener) {
+  const p = PRODUCTS[saved.product];
+  stopPoll();
+  S = { p, step: 2, qty: 1, buyer: store.get("st_buyer", {}), order: { ...saved, status: saved.status || "nuevo" } };
+  head(p);
+  openLayer($("#ov"), opener, () => {
+    stopPoll();
+    S = null;
+  });
+  draw();
 }
 
-function openTickets(opener) {
-  renderTickets();
-  openLayer($("#tk"), opener);
-}
-$("#openTickets").onclick = (ev) => openTickets(ev.currentTarget);
-
-function renderTickets() {
-  const all = myTickets();
+/* ---------------- Mis pedidos ---------------- */
+$("#openOrders").onclick = async (ev) => {
+  renderOrders();
+  openLayer($("#tk"), ev.currentTarget);
+  if (!SERVER) return;
+  const list = myOrders();
+  await Promise.all(
+    list.filter((o) => o.key).map(async (o) => {
+      try {
+        Object.assign(o, await api(`/orders/${o.code}?k=${o.key}`));
+      } catch {}
+    }),
+  );
+  store.set("st_orders", list);
+  renderOrders();
+};
+function renderOrders() {
+  const all = myOrders();
   if (!all.length) {
-    $("#tkList").innerHTML = `<div class="empty-tk"><p>Aún no tienes entradas.</p><a class="btn" href="#eventos" id="goEv">Ver funciones</a></div>`;
-    $("#goEv").onclick = () => closeLayer($("#tk"));
+    $("#tkList").innerHTML = `<div class="empty-tk"><p>Aún no tienes pedidos.</p><button class="btn" type="button" data-buy="obra">Comprar entradas</button></div>`;
     return;
   }
-  const up = all.filter((t) => {
-    const e = EVENTS.find((x) => x.id === t.eventId);
-    return e && evDate(e) > new Date(Date.now() - 6 * 36e5);
-  });
-  const past = all.filter((t) => !up.includes(t));
   $("#tkList").innerHTML =
-    (up.length ? `<h3 class="tk-h">Próximas</h3>` + up.map((t) => ticketHTML(t) + `<div class="tk-act"><button class="link" type="button" data-print="${esc(t.code)}">Imprimir / guardar PDF</button></div>`).join("") : "") +
-    (past.length ? `<h3 class="tk-h">Pasadas</h3><div class="past">${past.map(ticketHTML).join("")}</div>` : "") +
-    `<p class="msg tiny">Las entradas se guardan en este dispositivo. Tu correo también recibe una copia.</p>`;
+    all
+      .map(
+        (o) => `
+    <article class="ord st-${esc(o.status || "nuevo")}">
+      <div class="ord-top"><strong>${esc(o.code)}</strong><span class="pill">${esc(o.label || (SERVER ? "Consultando…" : "Pedido enviado"))}</span></div>
+      <p>${esc(o.detalle)}</p>
+      <div class="ord-foot"><b>${bs(o.amount)}</b>
+      ${o.ticket?.link ? `<a class="btn sm" href="${esc(o.ticket.link)}" target="_blank" rel="noopener">Ver entrada</a>` : o.status === "pagado" ? `<span class="pill ok">Confirmado</span>` : `<button class="btn sm" type="button" data-track="${esc(o.code)}">Seguir pedido</button>`}</div>
+    </article>`,
+      )
+      .join("") + `<p class="msg tiny">Tus pedidos se guardan en este dispositivo. Las entradas también te llegan por WhatsApp.</p>`;
 }
 
-document.addEventListener("click", (ev) => {
-  const p = ev.target.closest("[data-print]");
-  if (!p) return;
-  const t = myTickets().find((x) => x.code === p.dataset.print);
-  if (!t) return;
-  $("#printArea").innerHTML = ticketHTML(t);
-  window.print();
-});
+/* ---------------- Podcast: avísame ---------------- */
+$("#leadForm").onsubmit = async (ev) => {
+  ev.preventDefault();
+  const name = $("#ln").value.trim(),
+    phone = $("#lp").value.replace(/\D/g, "");
+  $("#ln").classList.toggle("err", name.length < 2);
+  $("#lp").classList.toggle("err", phone.length < 7);
+  if (name.length < 2 || phone.length < 7) return ($("#leadErr").textContent = "Escribe tu nombre y tu número de WhatsApp.");
+  $("#leadErr").textContent = "";
+  const btn = $("#leadForm button");
+  btn.disabled = true;
+  try {
+    if (SERVER) await api("/leads", { method: "POST", body: { name, phone, interest: "podcast", source: SOURCE.src } });
+    else window.open(`https://wa.me/${CONTACT.whatsapp}?text=${encodeURIComponent(`Hola, soy ${name}. Avísenme cuando salga el podcast 🎙️`)}`, "_blank", "noopener");
+    $("#leadForm").outerHTML = `<p class="thanks">¡Listo, ${esc(name.split(" ")[0])}! Te avisaremos por WhatsApp el día del estreno. 🎙️</p>`;
+  } catch (e) {
+    $("#leadErr").textContent = e.message;
+    btn.disabled = false;
+  }
+};
 
 /* =====================================================================
    VIDEOS
@@ -747,30 +594,13 @@ function openVideo(i, opener) {
     ? `<iframe src="https://www.youtube-nocookie.com/embed/${yt}?autoplay=1&rel=0" title="${esc(v.t)}" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>`
     : `<video src="${esc(v.src)}" poster="${esc(v.poster)}" controls autoplay playsinline></video>`;
   const vid = $("#player video");
-  if (vid)
-    vid.onerror = () =>
-      ($("#player").innerHTML = `<div class="v-err"><p>No pudimos cargar este video.</p><a class="btn ghost sm" href="${esc(v.src)}" target="_blank" rel="noopener">Abrir en otra pestaña</a></div>`);
-  const ev = v.event && UPCOMING.find((e) => e.id === v.event);
-  $("#vbar").innerHTML = `<div><small>${esc(v.tag)}</small><h3>${esc(v.t)}</h3></div>${ev ? `<button class="btn sm" type="button" id="vbuy">Entradas para ${esc(ev.t)}</button>` : ""}`;
-  if (ev) $("#vbuy").onclick = () => (closeLayer($("#vo")), openCheckout(ev.id));
+  if (vid) vid.onerror = () => ($("#player").innerHTML = `<div class="v-err"><p>No pudimos cargar este video.</p><a class="btn ghost sm" href="${esc(v.src)}" target="_blank" rel="noopener">Abrir en otra pestaña</a></div>`);
+  const p = PRODUCTS[v.product];
+  const canBuy = p && p.price && (p.id !== "obra" || upcoming().length);
+  $("#vbar").innerHTML = `<div><small>${esc(v.tag)}</small><h3>${esc(v.t)}</h3></div>${canBuy ? `<button class="btn sm" type="button" id="vbuy">${p.id === "obra" ? "Comprar entradas" : "Comprar el libro"}</button>` : ""}`;
+  if (canBuy) $("#vbuy").onclick = () => (closeLayer($("#vo")), openCheckout(p.id));
   openLayer($("#vo"), opener, () => ($("#player").innerHTML = ""));
 }
-
-/* =====================================================================
-   VENDE CON NOSOTROS → WhatsApp
-   ===================================================================== */
-$("#sellMail").href = "mailto:" + CONTACT.email;
-$("#sellMail").textContent = CONTACT.email;
-$("#sellForm").onsubmit = (ev) => {
-  ev.preventDefault();
-  const f = { v: $("#sv").value.trim(), n: $("#sn").value.trim(), t: $("#st").value.trim(), m: $("#sm").value.trim() };
-  const bad = [["sv", f.v.length < 2], ["sn", f.n.length < 2], ["st", !/^\+?[\d\s]{7,}$/.test(f.t)]];
-  bad.forEach(([k, b]) => $("#" + k).classList.toggle("err", b));
-  if (bad.some(([, b]) => b)) return ($("#sellErr").textContent = "Completa los campos marcados.");
-  $("#sellErr").textContent = "";
-  const text = `Hola, quiero vender entradas con SOTIRIA Tickets.\n\nEspacio: ${f.v}\nNombre: ${f.n}\nCelular: ${f.t}${f.m ? "\nEventos: " + f.m : ""}`;
-  window.open(`https://wa.me/${CONTACT.whatsapp}?text=${encodeURIComponent(text)}`, "_blank", "noopener");
-};
 
 /* ---------------- confeti ---------------- */
 function burst() {
@@ -789,15 +619,20 @@ function burst() {
 
 /* ---------------- inicio ---------------- */
 $("#yr").textContent = new Date().getFullYear();
-renderStats();
-renderFeature();
-renderChips();
-renderVenueFilter();
-renderEvents();
-renderVenues();
+$("#footWa").href = `https://wa.me/${CONTACT.whatsapp}`;
+renderHero();
+renderFuncs();
+renderBook();
+renderSoon();
 renderVideos();
 renderGallery();
 updateCount();
-Payments.init().then((m) => {
-  if (m === "demo") $("#modeBadge").textContent = "· Modo demostración: los pagos son simulados.";
+detectServer().then(async (ok) => {
+  SERVER = ok;
+  if (!ok) $("#modeBadge").textContent = "· Vista sin servidor: los pedidos se envían por WhatsApp y se validan a mano.";
+  await loadAvailability();
+  /* Enlaces directos desde redes: ?p=obra o ?p=libro abre la compra */
+  const want = params.get("p");
+  if (PRODUCTS[want]?.price) openCheckout(want);
+  else if (want === "podcast") $("#podcast").scrollIntoView();
 });

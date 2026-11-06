@@ -3,125 +3,72 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="robots" content="noindex, nofollow">
-<title>Panel del propietario | SOTIRIA Tickets</title>
+<title>Panel | SOTIRIA</title>
+<meta name="robots" content="noindex">
 <meta name="theme-color" content="#0e0c15">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23ff4f6d'/%3E%3Ctext x='32' y='44' font-size='34' text-anchor='middle' fill='white' font-family='Arial' font-weight='bold'%3ES%3C/text%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/style.css">
 <link rel="stylesheet" href="css/admin.css">
 </head>
-<body class="admin">
+<body class="adm">
 
-<header class="top scrolled">
-  <div class="wrap bar">
-    <a class="logo" href="./" aria-label="Ir a la tienda"><span class="logo-mark">S</span><span>SOTIRIA<small>panel</small></span></a>
-    <div class="adm-actions" id="admActions" hidden>
-      <span class="updated" id="updated" aria-live="polite"></span>
-      <button class="btn ghost sm" id="refresh" type="button">Actualizar</button>
-      <button class="btn ghost sm" id="logout" type="button">Cerrar sesión</button>
-    </div>
-  </div>
-</header>
+<!-- Inicio de sesión -->
+<section class="login" id="login" hidden>
+  <form class="login-box" id="loginForm">
+    <a class="logo" href="./"><span class="logo-mark">S</span><span>SOTIRIA<small>panel</small></span></a>
+    <h1>Entrar al panel</h1>
+    <label for="lgName">Tu nombre <small>(queda registrado en cada aprobación)</small></label>
+    <input id="lgName" autocomplete="username" required>
+    <label for="lgPw">Contraseña</label>
+    <input id="lgPw" type="password" autocomplete="current-password" required>
+    <p class="error" id="lgErr" role="alert"></p>
+    <button class="btn block" type="submit">Entrar</button>
+    <p class="msg tiny">¿Sin servidor? El panel solo funciona con <code>node server/server.js</code>.</p>
+  </form>
+</section>
 
-<main class="wrap adm">
+<!-- Panel -->
+<div class="app" id="app" hidden>
+  <aside class="side-nav">
+    <a class="logo" href="./" target="_blank"><span class="logo-mark">S</span><span>SOTIRIA<small>panel</small></span></a>
+    <nav id="tabs" aria-label="Secciones">
+      <button type="button" data-tab="proofs">🧾 Comprobantes <b class="badge" id="bProofs" hidden></b></button>
+      <button type="button" data-tab="stats">📊 Estadísticas</button>
+      <button type="button" data-tab="orders">📦 Pedidos</button>
+      <button type="button" data-tab="chats">💬 Chats <b class="badge" id="bChats" hidden></b></button>
+      <button type="button" data-tab="crm">👥 Clientes</button>
+      <button type="button" data-tab="qr">🔳 QR de cobro <b class="badge warn-b" id="bQR" hidden></b></button>
+      <button type="button" data-tab="door">🚪 Puerta</button>
+      <button type="button" data-tab="sim" id="tabSim" hidden>🧪 Simulador</button>
+    </nav>
+    <div class="me"><span id="meName"></span><button class="link" id="logout" type="button">Salir</button></div>
+  </aside>
 
-  <!-- Acceso -->
-  <section class="login" id="login" hidden>
-    <form class="card-form" id="loginForm" novalidate>
-      <span class="lock" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg></span>
-      <h1>Panel del propietario</h1>
-      <p class="msg">Solo para el dueño de la plataforma. Ingresa tu contraseña para ver las ventas.</p>
-      <label for="pw">Contraseña</label>
-      <input id="pw" type="password" autocomplete="current-password" required>
-      <p class="error" id="loginErr" role="alert"></p>
-      <button class="btn block" type="submit" id="loginBtn">Entrar</button>
-    </form>
-  </section>
-
-  <!-- Sin servidor -->
-  <section class="login" id="noserver" hidden>
-    <div class="card-form">
-      <h1>El panel necesita el servidor</h1>
-      <p class="msg">Las ventas se guardan en el servidor, por eso el panel no funciona abriendo el archivo directamente. En la terminal ejecuta:</p>
-      <pre class="cmd">node server/server.js</pre>
-      <p class="msg">y abre <b>http://localhost:3000/admin.html</b></p>
-    </div>
-  </section>
-
-  <!-- Panel -->
-  <section id="dash" hidden>
-    <p class="demo-note" id="demoNote" hidden><b>Datos de demostración.</b> Estas cifras incluyen ventas de prueba. Bórralas antes de vender de verdad con <code>node server/seed.js --clear</code>.</p>
-
-    <div class="adm-head">
-      <h1>Resumen de ventas</h1>
-      <p class="sub" id="tzNote"></p>
-    </div>
-
+  <main class="main">
+    <div class="banner" id="simBanner" hidden>🧪 <b>Modo simulador:</b> WhatsApp todavía no está conectado. Los mensajes no salen a teléfonos reales: pruébalos en la pestaña <b>Simulador</b>. Ver <code>WHATSAPP.md</code>.</div>
     <div class="kpis" id="kpis"></div>
+    <section id="view"></section>
+  </main>
+</div>
 
-    <article class="panel wide">
-      <header class="panel-h">
-        <div><h2>Ingresos de los últimos 30 días</h2><p class="sub" id="trendSub"></p></div>
-        <button class="link" type="button" data-toggle="trend">Ver tabla</button>
-      </header>
-      <div class="panel-b" id="trend"></div>
-    </article>
+<!-- Ventana genérica -->
+<div class="overlay" id="dlg" hidden>
+  <div class="modal wide" role="dialog" aria-modal="true" aria-labelledby="dlgTitle">
+    <button class="close" id="dlgClose" type="button" aria-label="Cerrar">×</button>
+    <div class="dlg-body" id="dlgBody"></div>
+  </div>
+</div>
 
-    <!-- Filtros: afectan a todo lo que está debajo -->
-    <div class="filterbar" role="group" aria-label="Filtros del detalle">
-      <h2>Detalle por</h2>
-      <div class="seg" id="fRange" role="radiogroup" aria-label="Período">
-        <button type="button" role="radio" data-v="day">Hoy</button>
-        <button type="button" role="radio" data-v="week">Esta semana</button>
-        <button type="button" role="radio" data-v="month">Este mes</button>
-        <button type="button" role="radio" data-v="d30">30 días</button>
-        <button type="button" role="radio" data-v="d90">90 días</button>
-        <button type="button" role="radio" data-v="all">Todo</button>
-      </div>
-      <div class="seg" id="fMetric" role="radiogroup" aria-label="Medida">
-        <button type="button" role="radio" data-v="revenue">Ingresos (Bs)</button>
-        <button type="button" role="radio" data-v="tickets">Entradas</button>
-      </div>
-    </div>
-    <p class="range-total" id="rangeTotal"></p>
-
-    <div class="adm-grid" id="grid">
-      <article class="panel">
-        <header class="panel-h"><div><h2>Por teatro</h2><p class="sub">Qué teatro vende más</p></div><button class="link" type="button" data-toggle="venue">Ver tabla</button></header>
-        <div class="panel-b" id="venue"></div>
-      </article>
-      <article class="panel">
-        <header class="panel-h"><div><h2>Por tipo de entrada</h2><p class="sub">General, Preferencial o VIP</p></div><button class="link" type="button" data-toggle="zone">Ver tabla</button></header>
-        <div class="panel-b" id="zone"></div>
-      </article>
-      <article class="panel">
-        <header class="panel-h"><div><h2>Por día de la semana</h2><p class="sub" id="weekdaySub">Qué días se vende más</p></div><button class="link" type="button" data-toggle="weekday">Ver tabla</button></header>
-        <div class="panel-b" id="weekday"></div>
-      </article>
-      <article class="panel">
-        <header class="panel-h"><div><h2>Por categoría</h2><p class="sub">Teatro, stand-up, música…</p></div><button class="link" type="button" data-toggle="cat">Ver tabla</button></header>
-        <div class="panel-b" id="cat"></div>
-      </article>
-      <article class="panel">
-        <header class="panel-h"><div><h2>Eventos más vendidos</h2></div></header>
-        <div class="panel-b" id="events"></div>
-      </article>
-      <article class="panel">
-        <header class="panel-h"><div><h2>Forma de pago</h2></div></header>
-        <div class="panel-b" id="method"></div>
-      </article>
-      <article class="panel wide">
-        <header class="panel-h"><div><h2>Últimas ventas</h2></div></header>
-        <div class="panel-b" id="recent"></div>
-      </article>
-    </div>
-  </section>
-</main>
+<!-- Visor de imagen -->
+<div class="lightbox" id="lb" hidden><img id="lbImg" alt="Comprobante ampliado"><button class="close" type="button" aria-label="Cerrar">×</button></div>
 
 <div class="tip" id="tip" role="tooltip" hidden></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="js/data.js"></script>
 <script src="js/admin.js"></script>
+<script src="js/admin-stats.js"></script>
 </body>
 </html>
