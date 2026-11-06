@@ -1,2 +1,4 @@
+server/data/
 server/db.json
 node_modules/
+*.zip

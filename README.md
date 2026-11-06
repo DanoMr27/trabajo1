@@ -1,37 +1,65 @@
-# SOTIRIA Tickets
+# SOTIRIA: la obra, el libro y el podcast
 
-Web de venta de entradas para el teatro SOTIRIA y otros teatros y salas de Santa Cruz de la Sierra.
+Página de venta de **entradas para la obra** (Bs 50) y del **libro**, con el **podcast** anunciado como
+"Próximamente". Los pagos se hacen **por QR a través de WhatsApp** y se validan desde un **panel**.
 
-## Cómo usarla
+## Cómo funciona la compra
 
-**Con servidor (pagos QR reales, recomendado):**
+1. El cliente llega desde Facebook, Instagram o TikTok (o directo) y elige la función y la cantidad.
+2. Pone sus datos y la página le da su **código de pedido** y el botón **"Abrir WhatsApp"**.
+3. En WhatsApp el sistema le responde **solo** con el **QR del monto exacto** (1 a 10 entradas).
+4. El cliente paga y envía la **foto del comprobante** al mismo chat.
+5. El comprobante aparece en el **panel**. El validador revisa la cuenta del banco y pulsa **Aprobar**.
+6. La **entrada única con QR** se envía sola a su WhatsApp, y la página del cliente se actualiza.
+
+## Ponerlo en marcha
+
+Necesitas Node 18 o superior; no hay que instalar nada más.
 
 ```bash
-node server/server.js
+ADMIN_PASSWORD="tu-clave" node server/server.js
 ```
 
-Abre http://localhost:3000. Solo necesitas Node 18 o superior, sin instalar nada más.
+- Página: <http://localhost:3000>
+- Panel: <http://localhost:3000/panel/>
 
-**Sin servidor (modo demostración):** abre `index.html` en el navegador. Todo funciona igual,
-pero los pagos se confirman con el botón "Simular pago recibido".
+Sin WhatsApp conectado funciona en **modo simulador**, y el circuito completo se prueba desde el panel.
+Para conectar WhatsApp real sigue [WHATSAPP.md](WHATSAPP.md).
 
-## Qué incluye
+## El panel
 
-- Catálogo de varios teatros, con buscador y filtros por categoría, teatro y fecha.
-- Compra en 4 pasos: zona y cantidad (con cupos), datos del comprador, pago y entrada.
-- Pago con **QR** (escaneable, vence en 15 min, se detecta solo) o con tarjeta.
-- Entradas con QR único, guardadas en "Mis entradas" e imprimibles o en PDF.
-- Videos (YouTube o MP4) en un reproductor, con botón para comprar entradas de ese evento.
-- Galería, sección "Vende con nosotros" (envía por WhatsApp) y preguntas frecuentes.
-
-## Dónde editar
-
-| Qué | Archivo |
+| Pestaña | Para qué |
 |---|---|
-| Teatros, eventos, precios, cupos, videos, galería, WhatsApp | `js/data.js` |
-| Conexión con el banco o la app de pagos | `server/server.js` (ver [PAGOS.md](PAGOS.md)) |
-| Diseño y colores | `css/style.css` (variables al inicio) |
-| Comportamiento de la página | `js/app.js`, `js/payments.js` |
+| Comprobantes | Ver cada comprobante con el monto esperado y **Aprobar** o **Rechazar** |
+| Chats | Todas las conversaciones de WhatsApp; responder desde ahí |
+| Órdenes | Todas las compras, con filtro por estado y buscador; exporta CSV |
+| Clientes (CRM) | Compradores e interesados del podcast, con el canal por el que llegaron; exporta CSV para Excel |
+| QRs de cobro | Subir los QR del banco, uno por cada monto |
+| Puerta | Validar entradas y registrar ingresos |
 
-Los teatros, eventos y el número de WhatsApp actuales son **ejemplos**. Los videos usan un clip de muestra;
-reemplázalos por los enlaces de YouTube del canal.
+## Antes de lanzar
+
+1. **QRs de cobro:** genera en la app del banco un QR **con monto fijo** para cada monto (Bs 50, 100, … 500
+   para las entradas, y los montos del libro) y súbelos en el panel. Elige la vigencia más larga y que acepte varios pagos.
+2. **Datos reales** en `js/data.js`: nombre de la obra, fechas, cupos, libro (título, autor, precio, entrega),
+   número de WhatsApp, videos e imágenes.
+3. **Servidor con HTTPS** y variables `ADMIN_PASSWORD` y `PUBLIC_URL`.
+4. **WhatsApp real:** ver [WHATSAPP.md](WHATSAPP.md).
+
+## Enlaces para redes sociales
+
+Cada publicación puede llevar directo a la compra y registrar de qué red viene el cliente:
+
+- Obra: `https://tu-dominio/?p=obra&src=instagram`
+- Libro: `https://tu-dominio/?p=libro&src=facebook`
+- Podcast: `https://tu-dominio/?p=podcast&src=tiktok`
+
+## Archivos
+
+| Archivo | Qué contiene |
+|---|---|
+| `js/data.js` | Obra, libro, podcast, precios, funciones, videos, WhatsApp |
+| `index.html`, `js/app.js`, `css/style.css` | La página pública |
+| `entrada.html` | La entrada que se abre al escanear el QR |
+| `panel/` | El panel de ventas |
+| `server/` | Servidor, conexión con WhatsApp y generador de QR. Los datos se guardan en `server/data/` |

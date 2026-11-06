@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Panel | SOTIRIA</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="panel.css">
+</head>
+<body>
+
+<!-- Inicio de sesión -->
+<section class="login" id="login" hidden>
+  <form class="login-box" id="loginForm">
+    <div class="brand"><span class="mark">S</span><b>SOTIRIA</b><small>Panel de ventas</small></div>
+    <label for="lname">Tu nombre</label>
+    <input id="lname" autocomplete="name" placeholder="Para registrar quién valida" required>
+    <label for="lpass">Contraseña</label>
+    <input id="lpass" type="password" autocomplete="current-password" required>
+    <p class="err" id="lerr" role="alert"></p>
+    <button class="b primary block" type="submit">Entrar</button>
+  </form>
+</section>
+
+<!-- Aplicación -->
+<div class="app" id="app" hidden>
+  <aside class="side">
+    <div class="brand"><span class="mark">S</span><b>SOTIRIA</b><small>Panel de ventas</small></div>
+    <nav class="tabs" id="tabs">
+      <button data-tab="receipts" class="on">🧾 Comprobantes <b class="badge" id="bReceipts" hidden></b></button>
+      <button data-tab="chats">💬 Chats <b class="badge" id="bChats" hidden></b></button>
+      <button data-tab="orders">📋 Órdenes</button>
+      <button data-tab="crm">👥 Clientes (CRM)</button>
+      <button data-tab="qr">🔳 QRs de cobro <b class="badge warn" id="bQR" hidden></b></button>
+      <button data-tab="door">🚪 Puerta</button>
+      <button data-tab="sim" id="simTab" hidden>🧪 Simulador WhatsApp</button>
+    </nav>
+    <div class="side-foot">
+      <p id="waMode"></p>
+      <p>Sesión: <b id="who"></b></p>
+      <button class="b ghost sm" id="logout" type="button">Salir</button>
+    </div>
+  </aside>
+
+  <main class="main">
+    <section class="stats" id="stats"></section>
+
+    <!-- Comprobantes -->
+    <section class="tab" id="t-receipts">
+      <header class="th"><div><h1>Comprobantes por revisar</h1><p>Verifica en la cuenta del banco que el dinero llegó y luego aprueba. La entrada se envía sola al WhatsApp del cliente.</p></div></header>
+      <div id="receiptList" class="rlist"></div>
+    </section>
+
+    <!-- Chats -->
+    <section class="tab" id="t-chats" hidden>
+      <div class="chats">
+        <div class="clist" id="chatList"></div>
+        <div class="cview" id="chatView"><p class="empty">Elige una conversación.</p></div>
+      </div>
+    </section>
+
+    <!-- Órdenes -->
+    <section class="tab" id="t-orders" hidden>
+      <header class="th"><div><h1>Órdenes</h1></div>
+        <div class="tools">
+          <select id="oStatus" aria-label="Estado"><option value="">Todos los estados</option></select>
+          <input id="oSearch" type="search" placeholder="Buscar nombre, CI, celular, código…" aria-label="Buscar">
+          <a class="b ghost sm" href="/api/admin/export/ordenes.csv">⬇ Exportar CSV</a>
+        </div>
+      </header>
+      <div class="tablewrap"><table class="tbl" id="orderTable"></table></div>
+    </section>
+
+    <!-- CRM -->
+    <section class="tab" id="t-crm" hidden>
+      <header class="th"><div><h1>Clientes</h1><p>Todos los compradores y las personas que pidieron aviso del podcast, con el canal por el que llegaron.</p></div>
+        <div class="tools"><input id="cSearch" type="search" placeholder="Buscar…" aria-label="Buscar cliente"><a class="b ghost sm" href="/api/admin/export/clientes.csv">⬇ Exportar CSV (Excel)</a></div>
+      </header>
+      <div class="cards4" id="crmStats"></div>
+      <div class="tablewrap"><table class="tbl" id="crmTable"></table></div>
+    </section>
+
+    <!-- QRs -->
+    <section class="tab" id="t-qr" hidden>
+      <header class="th"><div><h1>QRs de cobro</h1><p>Genera en la app del banco un QR de cobro <b>con monto fijo</b> para cada monto y súbelo aquí (captura o imagen descargada). El sistema envía el QR correcto según la cantidad que compre el cliente. Elige la vigencia más larga y que acepte varios pagos.</p></div></header>
+      <div class="qrgrid" id="qrGrid"></div>
+    </section>
+
+    <!-- Puerta -->
+    <section class="tab" id="t-door" hidden>
+      <header class="th"><div><h1>Control de ingreso</h1><p>Escanea el QR de la entrada con la cámara del celular (se abre la página de la entrada con el botón de ingreso) o escribe el código aquí.</p></div></header>
+      <form class="door" id="doorForm"><input id="doorCode" placeholder="ST-XXXXXXXX" autocapitalize="characters" aria-label="Código de la entrada"><button class="b primary" type="submit">Buscar</button></form>
+      <div id="doorResult"></div>
+    </section>
+
+    <!-- Simulador -->
+    <section class="tab" id="t-sim" hidden>
+      <header class="th"><div><h1>Simulador de WhatsApp</h1><p>Mientras no conectes WhatsApp real, aquí puedes hacer de <b>cliente</b> y probar todo el circuito: escribe el mensaje con el código de orden, recibe el QR, envía una foto como comprobante y apruébalo en «Comprobantes».</p></div></header>
+      <div class="sim">
+        <div class="phone">
+          <div class="ph-top"><input id="simTel" placeholder="Celular del cliente (7XXXXXXX)" aria-label="Celular del cliente"><input id="simName" placeholder="Nombre" aria-label="Nombre del cliente"></div>
+          <div class="ph-chat" id="simChat"><p class="empty">Escribe el número del cliente (el mismo que usó en la página).</p></div>
+          <form class="ph-send" id="simForm">
+            <label class="attach" title="Enviar imagen o PDF (comprobante)"><input type="file" id="simFile" accept="image/png,image/jpeg,application/pdf" hidden>📎</label>
+            <input id="simText" placeholder="Mensaje" autocomplete="off" aria-label="Mensaje">
+            <button class="b primary" type="submit">Enviar</button>
+          </form>
+        </div>
+        <div class="sim-help">
+          <h3>Cómo probar</h3>
+          <ol>
+            <li>Abre <a href="/" target="_blank">la página</a>, compra entradas y copia el mensaje que se abriría en WhatsApp (o solo el código <code>ORD-…</code>).</li>
+            <li>Aquí, escribe el celular que usaste y envía ese mensaje → te llega el QR de cobro.</li>
+            <li>Toca 📎 y envía cualquier imagen como «comprobante».</li>
+            <li>Ve a <b>Comprobantes</b> y aprueba → aquí llega la entrada con su QR, y la página del cliente se actualiza sola.</li>
+          </ol>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- Visor de imagen / detalle -->
+<div class="lb" id="lb" hidden><button class="lb-x" id="lbX" type="button" aria-label="Cerrar">×</button><div id="lbBody"></div></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="/js/data.js"></script>
+<script src="panel.js"></script>
+</body>
+</html>
