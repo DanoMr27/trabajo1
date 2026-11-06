@@ -41,14 +41,14 @@
     libro: {
       id: "libro",
       type: "book",
-      t: "Título del libro",
+      t: "La última jugada",
       tag: "El libro",
-      author: "Autor/a",
+      author: "Simón Arce",
       s: "Las historias detrás del escenario, ahora en papel.",
       long:
         "Escribe aquí la presentación del libro: de qué trata, por qué leerlo y qué lo hace especial. " +
         "Puedes incluir el número de páginas, el formato y si viene firmado.",
-      price: 70, // ⚠ precio de ejemplo
+      price: 100, // Bs por libro
       maxQty: 5,
       unit: ["libro", "libros"],
       /* Formas de entrega que el comprador puede elegir */

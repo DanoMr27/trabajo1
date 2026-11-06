@@ -4,3 +4,4 @@ server/admin.json
 server/uploads/
 server/qr-cobro/
 node_modules/
+server/db-legacy.json
