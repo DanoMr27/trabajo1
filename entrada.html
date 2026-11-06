@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mi entrada | SOTIRIA</title>
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#0e0c15">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+<style>
+  body { min-height: 100dvh; display: grid; place-items: center; padding: 24px 16px; background: radial-gradient(circle at 20% 0%, rgba(255,79,109,.25), transparent 50%), radial-gradient(circle at 100% 100%, rgba(139,108,255,.25), transparent 50%), var(--bg); }
+  .tk { width: min(420px, 100%); background: var(--surface); border: 1px solid var(--line); border-radius: 26px; overflow: hidden; box-shadow: var(--shadow); }
+  .tk-top { padding: 26px 24px 20px; background: var(--accent); color: #1a0a10; }
+  .tk-top small { font-weight: 800; letter-spacing: .14em; text-transform: uppercase; font-size: .74rem; }
+  .tk-top h1 { font-size: 2rem; margin-top: 6px; }
+  .tk-mid { padding: 20px 24px; display: grid; gap: 12px; }
+  .tk-mid dt { font-size: .72rem; color: var(--muted); text-transform: uppercase; letter-spacing: .1em; font-weight: 700; }
+  .tk-mid dd { margin: 0; font-weight: 700; }
+  .tk-cut { position: relative; border-top: 2px dashed var(--line); margin: 0 18px; }
+  .tk-cut::before, .tk-cut::after { content: ""; position: absolute; top: -12px; width: 24px; height: 24px; border-radius: 50%; background: var(--bg); }
+  .tk-cut::before { left: -32px; } .tk-cut::after { right: -32px; }
+  .tk-qr { padding: 22px 24px 26px; text-align: center; }
+  .tk-qr .q { width: 220px; margin: 0 auto 12px; background: #fff; padding: 10px; border-radius: 16px; }
+  .tk-qr strong { font: 700 1.05rem ui-monospace, monospace; letter-spacing: .05em; }
+  .state { margin-top: 10px; font-size: .9rem; color: var(--muted); }
+  .bad { color: var(--bad); }
+  .door { margin-top: 16px; padding: 14px; border-radius: 16px; background: var(--bg-2); border: 1px solid var(--line); }
+  .door p { margin-bottom: 10px; }
+  .big-ok { font: 800 1.3rem var(--head); color: var(--ok); }
+  .big-bad { font: 800 1.3rem var(--head); color: var(--bad); }
+  .back { display: block; text-align: center; margin-top: 18px; color: var(--muted); font-size: .9rem; }
+  @media print { body { background: #fff; color: #000; } .tk { box-shadow: none; border: 2px solid #000; } .door, .back { display: none; } }
+</style>
+</head>
+<body>
+<main>
+  <div class="tk" id="tk"><div class="loading">Cargando tu entrada…</div></div>
+  <a class="back" href="./">← Volver a la página</a>
+</main>
+<script src="vendor/qrcode.js"></script>
+<script src="js/entrada.js"></script>
+</body>
+</html>

@@ -3,9 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>SOTIRIA Tickets | Entradas para teatro, humor y música</title>
-<meta name="description" content="Compra entradas para teatro, stand-up, música y más en Santa Cruz de la Sierra. Paga con QR o tarjeta y recibe tu entrada al instante.">
+<title>SOTIRIA | La obra, el libro y el podcast</title>
+<meta name="description" content="Compra tus entradas para la obra y el libro de SOTIRIA. Paga con QR y recibe tu entrada única por WhatsApp.">
 <meta name="theme-color" content="#0e0c15">
+<meta property="og:title" content="SOTIRIA | La obra, el libro y el podcast">
+<meta property="og:description" content="Entradas a Bs 50. Paga con QR y recibe tu entrada por WhatsApp.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23ff4f6d'/%3E%3Ctext x='32' y='44' font-size='34' text-anchor='middle' fill='white' font-family='Arial' font-weight='bold'%3ES%3C/text%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -13,101 +15,95 @@
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-<a class="skip" href="#eventos">Saltar a los eventos</a>
+<a class="skip" href="#obra">Saltar al contenido</a>
 
 <header class="top" id="top">
   <div class="wrap bar">
-    <a class="logo" href="#" aria-label="SOTIRIA Tickets, inicio"><span class="logo-mark">S</span><span>SOTIRIA<small>tickets</small></span></a>
+    <a class="logo" href="#" aria-label="SOTIRIA, inicio"><span class="logo-mark">S</span><span>SOTIRIA<small>teatro · libro · podcast</small></span></a>
     <nav class="mainnav" id="nav" aria-label="Principal">
-      <a href="#eventos">Eventos</a>
-      <a href="#teatros">Teatros</a>
+      <a href="#obra">La obra</a>
+      <a href="#libro">El libro</a>
+      <a href="#podcast">Podcast</a>
       <a href="#videos">Videos</a>
       <a href="#galeria">Galería</a>
-      <a href="#vender">Vende con nosotros</a>
     </nav>
-    <button class="btn sm mytk" id="openTickets" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 8a2 2 0 0 0 2-2h14a2 2 0 0 0 2 2v2a2 2 0 0 0 0 4v2a2 2 0 0 0-2 2H5a2 2 0 0 0-2-2v-2a2 2 0 0 0 0-4z"/></svg><span>Mis entradas</span><b class="count" id="tkCount" hidden>0</b></button>
+    <button class="btn sm ghost mytk" id="openOrders" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 8a2 2 0 0 0 2-2h14a2 2 0 0 0 2 2v2a2 2 0 0 0 0 4v2a2 2 0 0 0-2 2H5a2 2 0 0 0-2-2v-2a2 2 0 0 0 0-4z"/></svg><span>Mis pedidos</span><b class="count" id="ordCount" hidden>0</b></button>
     <button class="burger" id="burger" type="button" aria-label="Abrir menú" aria-expanded="false" aria-controls="nav"><i></i><i></i><i></i></button>
   </div>
 </header>
 
 <main>
-  <!-- ============ HERO ============ -->
-  <section class="hero">
-    <div class="glow g1"></div><div class="glow g2"></div>
+  <!-- ============ HERO: LA OBRA ============ -->
+  <section class="hero" id="hero">
+    <div class="hero-bg" id="heroBg"></div>
     <div class="wrap hero-grid">
       <div class="hero-copy">
-        <span class="eyebrow"><i class="live"></i>Entradas en Santa Cruz de la Sierra</span>
-        <h1>Todas las funciones de la ciudad, <em>en un solo lugar.</em></h1>
-        <p class="lead">Teatro, stand-up, música, danza y más de los mejores escenarios. Elige tu función, paga con QR desde la app de tu banco y entra con tu código.</p>
-        <form class="search" id="search" role="search">
-          <label class="sr" for="q">Buscar eventos</label>
-          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
-          <input id="q" type="search" placeholder="Busca un show, artista o teatro…" autocomplete="off">
-          <button class="btn" type="submit">Buscar</button>
-        </form>
-        <ul class="stats" id="stats"></ul>
+        <span class="eyebrow"><i class="live"></i><span id="heroTag">En cartelera</span></span>
+        <h1 id="heroTitle"></h1>
+        <p class="lead" id="heroLead"></p>
+        <ul class="hero-meta" id="heroMeta"></ul>
+        <div class="actions">
+          <button class="btn lg" type="button" data-buy="obra" id="heroBuy">Comprar entradas</button>
+          <a class="btn ghost lg" href="#videos">Ver adelanto</a>
+        </div>
+        <div class="cd" id="heroCd" aria-live="off"></div>
       </div>
-      <div class="feature" id="feature" aria-live="polite"></div>
     </div>
   </section>
 
-  <div class="chips-wrap"><div class="wrap"><div class="chips" id="chips" role="toolbar" aria-label="Categorías"></div></div></div>
+  <div class="tape-wrap" aria-hidden="true"><div class="tape"><div id="tape"></div></div></div>
 
-  <!-- ============ EVENTOS ============ -->
-  <section id="eventos" class="sec">
+  <!-- ============ LA OBRA ============ -->
+  <section id="obra" class="sec">
     <div class="wrap">
-      <div class="sec-head">
-        <div>
-          <h2>Próximas funciones</h2>
-          <p class="sub" id="resultsLabel">Todas las funciones disponibles</p>
-        </div>
-        <div class="filters">
-          <label class="sel"><span>Teatro</span><select id="fVenue"></select></label>
-          <label class="sel"><span>Fecha</span><select id="fDate">
-            <option value="all">Cualquier fecha</option>
-            <option value="week">Próximos 7 días</option>
-            <option value="month">Próximos 30 días</option>
-            <option value="weekend">Este fin de semana</option>
-          </select></label>
-          <label class="sel"><span>Ordenar</span><select id="fSort">
-            <option value="date">Más próximos</option>
-            <option value="price">Menor precio</option>
-            <option value="name">Nombre (A-Z)</option>
-          </select></label>
-        </div>
-      </div>
-      <div class="grid events" id="events"></div>
-      <div class="empty" id="empty" hidden>
-        <p><b>No encontramos funciones con esos filtros.</b><br>Prueba con otra fecha o categoría.</p>
-        <button class="btn ghost" id="clearFilters" type="button">Ver todas las funciones</button>
-      </div>
+      <div class="sec-head"><div><span class="kicker">La obra</span><h2>Elige tu función</h2><p class="sub" id="obraSub"></p></div></div>
+      <div class="funcs" id="funcs"></div>
     </div>
   </section>
 
-  <!-- ============ CÓMO FUNCIONA ============ -->
+  <!-- ============ CÓMO COMPRAR ============ -->
   <section class="sec how">
     <div class="wrap">
-      <h2>Tu entrada en 3 pasos</h2>
-      <ol class="steps3">
-        <li><span>1</span><h3>Elige tu función</h3><p>Filtra por teatro, fecha o categoría y escoge tu zona.</p></li>
-        <li><span>2</span><h3>Paga con QR o tarjeta</h3><p>Escanea el QR con la app de cualquier banco. La confirmación es automática.</p></li>
-        <li><span>3</span><h3>Entra con tu código</h3><p>Tu entrada llega al instante con un QR único. Muéstralo en la puerta.</p></li>
+      <h2>Así de fácil compras</h2>
+      <ol class="steps4">
+        <li><span>1</span><h3>Elige</h3><p>La función (o el libro) y cuántas entradas quieres.</p></li>
+        <li><span>2</span><h3>Escríbenos</h3><p>Te abrimos WhatsApp con tu pedido listo. Solo toca enviar.</p></li>
+        <li><span>3</span><h3>Paga con QR</h3><p>Te llega el QR con el monto exacto. Descárgalo y paga desde tu banco.</p></li>
+        <li><span>4</span><h3>Recibe tu entrada</h3><p>Envía el comprobante en ese chat y te mandamos tu entrada única.</p></li>
       </ol>
     </div>
   </section>
 
-  <!-- ============ TEATROS ============ -->
-  <section id="teatros" class="sec">
+  <!-- ============ EL LIBRO ============ -->
+  <section id="libro" class="sec book">
+    <div class="wrap book-grid" id="bookBox"></div>
+  </section>
+
+  <!-- ============ PODCAST: PRÓXIMAMENTE ============ -->
+  <section id="podcast" class="sec">
     <div class="wrap">
-      <div class="sec-head"><div><h2>Teatros y salas</h2><p class="sub">Los escenarios que venden sus entradas con nosotros.</p></div></div>
-      <div class="grid venues" id="venues"></div>
+      <div class="soon" id="soonBox">
+        <div class="soon-ribbon" aria-hidden="true"><span>Próximamente</span></div>
+        <div class="soon-copy">
+          <span class="kicker">Próximamente</span>
+          <h2 id="soonTitle"></h2>
+          <p id="soonText"></p>
+          <form class="soon-form" id="leadForm" novalidate>
+            <div><label for="ln">Tu nombre</label><input id="ln" autocomplete="name" required></div>
+            <div><label for="lp">Tu WhatsApp</label><input id="lp" type="tel" inputmode="tel" autocomplete="tel" placeholder="7XXXXXXX" required></div>
+            <button class="btn" type="submit">Avísame</button>
+          </form>
+          <p class="error" id="leadErr" role="alert"></p>
+        </div>
+        <div class="soon-art" id="soonArt"></div>
+      </div>
     </div>
   </section>
 
   <!-- ============ VIDEOS ============ -->
   <section id="videos" class="sec videos">
     <div class="wrap">
-      <div class="sec-head"><div><h2>Un vistazo antes de venir</h2><p class="sub">Adelantos, mejores momentos y lo que pasa detrás del telón.</p></div></div>
+      <div class="sec-head"><div><h2>Un vistazo antes de venir</h2><p class="sub">Adelantos, detrás de cámaras y lo que se viene.</p></div></div>
       <div class="grid vids" id="vids"></div>
     </div>
   </section>
@@ -120,51 +116,26 @@
     </div>
   </section>
 
-  <!-- ============ VENDE CON NOSOTROS ============ -->
-  <section id="vender" class="sec sell">
-    <div class="wrap sell-grid">
-      <div>
-        <span class="eyebrow">Para teatros, productoras y salas</span>
-        <h2>Vende tus entradas con nosotros</h2>
-        <ul class="ticks">
-          <li>Cobro por QR interoperable y tarjeta, sin efectivo.</li>
-          <li>Entradas con QR único y validación en la puerta.</li>
-          <li>Tu cartelera frente al público de toda la ciudad.</li>
-          <li>Reportes de ventas por función y por zona.</li>
-        </ul>
-      </div>
-      <form class="card-form" id="sellForm" novalidate>
-        <h3>Cuéntanos de tu espacio</h3>
-        <label for="sv">Nombre del teatro o productora</label><input id="sv" required>
-        <div class="row"><div><label for="sn">Tu nombre</label><input id="sn" autocomplete="name" required></div>
-        <div><label for="st">Celular</label><input id="st" type="tel" autocomplete="tel" required></div></div>
-        <label for="sm">¿Qué tipo de eventos haces?</label><textarea id="sm" rows="3"></textarea>
-        <p class="error" id="sellErr" role="alert"></p>
-        <button class="btn block" type="submit">Enviar por WhatsApp</button>
-        <p class="msg">También puedes escribirnos a <a id="sellMail" href="#"></a></p>
-      </form>
-    </div>
-  </section>
-
   <!-- ============ FAQ ============ -->
   <section class="sec faq">
     <div class="wrap narrow">
       <h2>Preguntas frecuentes</h2>
-      <details><summary>¿Cómo pago con QR?</summary><p>Al confirmar tu compra verás un código QR por el monto exacto. Ábrelo con la app de tu banco (cualquier banco boliviano con pagos QR), escanéalo y confirma. La página detecta el pago y te entrega tu entrada automáticamente; no necesitas enviar comprobantes.</p></details>
-      <details><summary>¿Dónde veo mis entradas?</summary><p>En el botón <b>Mis entradas</b>, arriba a la derecha. Ahí puedes mostrar el QR en la puerta o imprimirlo. También te las enviamos al correo que registres.</p></details>
-      <details><summary>¿Cuánto tiempo tengo para pagar?</summary><p>El QR es válido por 15 minutos. Durante ese tiempo tus asientos quedan reservados.</p></details>
-      <details><summary>¿Puedo pedir un reembolso?</summary><p>Si la función se cancela o se reprograma te devolvemos el 100%. En otros casos, depende de la política de cada teatro.</p></details>
+      <details><summary>¿Cómo pago?</summary><p>Eliges tu función y cantidad en esta página y te abrimos WhatsApp con tu pedido ya escrito. Al enviarlo te respondemos con un QR por el monto exacto: lo descargas y lo pagas desde la app de cualquier banco.</p></details>
+      <details><summary>¿Cuándo recibo mi entrada?</summary><p>Apenas envías la foto del comprobante en el mismo chat, nuestro equipo lo valida y te enviamos tu entrada única con código QR por WhatsApp. También la ves en <b>Mis pedidos</b>.</p></details>
+      <details><summary>¿Cuánto tiempo tengo para pagar?</summary><p>Tus entradas quedan reservadas 24 horas desde que te enviamos el QR.</p></details>
+      <details><summary>¿Cómo recibo el libro?</summary><p>Puedes retirarlo el día de la función o pedir envío dentro de Santa Cruz; lo coordinamos por WhatsApp.</p></details>
+      <details><summary>¿Una entrada sirve para varias personas?</summary><p>Sí: si compras 3 entradas recibes un solo código válido para 3 ingresos.</p></details>
     </div>
   </section>
 </main>
 
 <footer class="foot">
   <div class="wrap foot-grid">
-    <div><a class="logo" href="#"><span class="logo-mark">S</span><span>SOTIRIA<small>tickets</small></span></a><p>Santa Cruz de la Sierra, Bolivia</p></div>
-    <div><b>Explora</b><a href="#eventos">Eventos</a><a href="#teatros">Teatros</a><a href="#videos">Videos</a></div>
-    <div><b>Síguenos</b><a href="https://www.facebook.com/" rel="noopener" target="_blank">Facebook</a><a href="https://www.youtube.com/" rel="noopener" target="_blank">YouTube</a><a href="https://www.tiktok.com/" rel="noopener" target="_blank">TikTok</a></div>
+    <div><a class="logo" href="#"><span class="logo-mark">S</span><span>SOTIRIA<small>teatro · libro · podcast</small></span></a><p>Santa Cruz de la Sierra, Bolivia</p></div>
+    <div><b>Explora</b><a href="#obra">La obra</a><a href="#libro">El libro</a><a href="#podcast">Podcast</a></div>
+    <div><b>Síguenos</b><a href="https://www.facebook.com/" rel="noopener" target="_blank">Facebook</a><a href="https://www.instagram.com/" rel="noopener" target="_blank">Instagram</a><a href="https://www.tiktok.com/" rel="noopener" target="_blank">TikTok</a><a id="footWa" href="#" rel="noopener" target="_blank">WhatsApp</a></div>
   </div>
-  <p class="wrap legal">© <span id="yr"></span> SOTIRIA TV. Pagos procesados de forma segura. <span id="modeBadge" class="mode"></span></p>
+  <p class="wrap legal">© <span id="yr"></span> SOTIRIA TV. <span id="modeBadge" class="mode"></span></p>
 </footer>
 
 <!-- Compra -->
@@ -172,7 +143,7 @@
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="mt">
     <button class="close" id="ovClose" type="button" aria-label="Cerrar">×</button>
     <div class="m-head" id="mhead"></div>
-    <ol class="progress" id="progress" aria-label="Pasos de compra"><li>Entradas</li><li>Tus datos</li><li>Pago</li><li>Listo</li></ol>
+    <ol class="progress" id="progress" aria-label="Pasos de compra"><li>Elige</li><li>Tus datos</li><li>Pago</li><li>Listo</li></ol>
     <div class="m-body" id="mbody"></div>
   </div>
 </div>
@@ -186,20 +157,17 @@
   </div>
 </div>
 
-<!-- Mis entradas -->
+<!-- Mis pedidos -->
 <div class="overlay side" id="tk" hidden>
   <aside class="drawer" role="dialog" aria-modal="true" aria-labelledby="tkTitle">
     <button class="close" id="tkClose" type="button" aria-label="Cerrar">×</button>
-    <h2 id="tkTitle">Mis entradas</h2>
+    <h2 id="tkTitle">Mis pedidos</h2>
     <div id="tkList"></div>
   </aside>
 </div>
 
-<div id="printArea" aria-hidden="true"></div>
-
 <script src="vendor/qrcode.js"></script>
 <script src="js/data.js"></script>
-<script src="js/payments.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>

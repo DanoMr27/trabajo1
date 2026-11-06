@@ -1,2 +1,6 @@
 server/db.json
+server/db.json.tmp
+server/admin.json
+server/uploads/
+server/qr-cobro/
 node_modules/

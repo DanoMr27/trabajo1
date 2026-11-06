@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Panel | SOTIRIA</title>
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#0e0c15">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/admin.css">
+</head>
+<body class="adm">
+
+<!-- Inicio de sesión -->
+<section class="login" id="login" hidden>
+  <form class="login-box" id="loginForm">
+    <a class="logo" href="./"><span class="logo-mark">S</span><span>SOTIRIA<small>panel</small></span></a>
+    <h1>Entrar al panel</h1>
+    <label for="lgName">Tu nombre <small>(queda registrado en cada aprobación)</small></label>
+    <input id="lgName" autocomplete="username" required>
+    <label for="lgPw">Contraseña</label>
+    <input id="lgPw" type="password" autocomplete="current-password" required>
+    <p class="error" id="lgErr" role="alert"></p>
+    <button class="btn block" type="submit">Entrar</button>
+    <p class="msg tiny">¿Sin servidor? El panel solo funciona con <code>node server/server.js</code>.</p>
+  </form>
+</section>
+
+<!-- Panel -->
+<div class="app" id="app" hidden>
+  <aside class="side-nav">
+    <a class="logo" href="./" target="_blank"><span class="logo-mark">S</span><span>SOTIRIA<small>panel</small></span></a>
+    <nav id="tabs" aria-label="Secciones">
+      <button type="button" data-tab="proofs">🧾 Comprobantes <b class="badge" id="bProofs" hidden></b></button>
+      <button type="button" data-tab="orders">📦 Pedidos</button>
+      <button type="button" data-tab="chats">💬 Chats <b class="badge" id="bChats" hidden></b></button>
+      <button type="button" data-tab="crm">👥 Clientes</button>
+      <button type="button" data-tab="qr">🔳 QR de cobro <b class="badge warn-b" id="bQR" hidden></b></button>
+      <button type="button" data-tab="door">🚪 Puerta</button>
+      <button type="button" data-tab="sim" id="tabSim" hidden>🧪 Simulador</button>
+    </nav>
+    <div class="me"><span id="meName"></span><button class="link" id="logout" type="button">Salir</button></div>
+  </aside>
+
+  <main class="main">
+    <div class="banner" id="simBanner" hidden>🧪 <b>Modo simulador:</b> WhatsApp todavía no está conectado. Los mensajes no salen a teléfonos reales: pruébalos en la pestaña <b>Simulador</b>. Ver <code>WHATSAPP.md</code>.</div>
+    <div class="kpis" id="kpis"></div>
+    <section id="view"></section>
+  </main>
+</div>
+
+<!-- Ventana genérica -->
+<div class="overlay" id="dlg" hidden>
+  <div class="modal wide" role="dialog" aria-modal="true" aria-labelledby="dlgTitle">
+    <button class="close" id="dlgClose" type="button" aria-label="Cerrar">×</button>
+    <div class="dlg-body" id="dlgBody"></div>
+  </div>
+</div>
+
+<!-- Visor de imagen -->
+<div class="lightbox" id="lb" hidden><img id="lbImg" alt="Comprobante ampliado"><button class="close" type="button" aria-label="Cerrar">×</button></div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="js/data.js"></script>
+<script src="js/admin.js"></script>
+</body>
+</html>
