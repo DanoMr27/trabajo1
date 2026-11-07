@@ -10,6 +10,22 @@
 .login-box h1 { font-size: 1.6rem; margin: 22px 0 6px; }
 .login-box .btn { margin-top: 10px; }
 
+/* elegir rol */
+.roles-box { width: min(560px, 100%); }
+.role-pick { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 20px; }
+.role-card { display: grid; gap: 6px; text-align: left; align-content: start; padding: 20px; border-radius: 18px; border: 1.5px solid var(--line); background: var(--bg-2); color: var(--text); cursor: pointer; transition: border-color 0.15s, transform 0.15s, background 0.15s; }
+.role-card:hover, .role-card:focus-visible { border-color: var(--coral); background: rgba(255, 79, 109, 0.08); transform: translateY(-2px); }
+.role-card b { font-family: var(--head); font-size: 1.25rem; }
+.role-card small { color: var(--muted); font-size: 0.86rem; line-height: 1.45; }
+.role-ico { display: grid; place-items: center; width: 48px; height: 48px; border-radius: 14px; background: var(--surface-2); font-size: 1.5rem; margin-bottom: 4px; }
+.role-card[data-role="validator"] .role-ico { background: rgba(52, 211, 153, 0.14); }
+.back-role { display: block; margin-top: 18px; font-size: 0.88rem; }
+.back-role + h1 { margin-top: 8px; }
+.role-tag { display: inline-block; font-size: 0.82rem; font-weight: 700; color: var(--gold); background: rgba(255, 181, 71, 0.12); border-radius: 99px; padding: 4px 12px; margin-bottom: 4px; }
+@media (max-width: 520px) {
+  .role-pick { grid-template-columns: 1fr; }
+}
+
 /* estructura */
 .app { display: grid; grid-template-columns: 240px 1fr; min-height: 100dvh; }
 .side-nav { position: sticky; top: 0; height: 100dvh; display: flex; flex-direction: column; gap: 22px; padding: 22px 14px; background: var(--bg-2); border-right: 1px solid var(--line); }

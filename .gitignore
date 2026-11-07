@@ -1,6 +1,7 @@
 server/db.json
 server/db.json.tmp
 server/admin.json
+server/validator.json
 server/uploads/
 server/qr-cobro/
 node_modules/

@@ -14,11 +14,34 @@
 </head>
 <body class="adm">
 
+<!-- Elegir rol -->
+<section class="login" id="roles" hidden>
+  <div class="login-box roles-box">
+    <a class="logo" href="./"><span class="logo-mark">S</span><span>SOTIRIA<small>panel</small></span></a>
+    <h1>¿Cómo vas a entrar?</h1>
+    <p class="msg">Cada rol tiene su propia contraseña.</p>
+    <div class="role-pick">
+      <button type="button" class="role-card" data-role="admin">
+        <span class="role-ico" aria-hidden="true">🛡️</span>
+        <b>Administrador</b>
+        <small>Acceso completo: estadísticas, pedidos, chats, clientes, QR de cobro y puerta.</small>
+      </button>
+      <button type="button" class="role-card" data-role="validator">
+        <span class="role-ico" aria-hidden="true">🧾</span>
+        <b>Validador</b>
+        <small>Solo comprobantes: revisar, validar o rechazar pagos.</small>
+      </button>
+    </div>
+  </div>
+</section>
+
 <!-- Inicio de sesión -->
 <section class="login" id="login" hidden>
   <form class="login-box" id="loginForm">
     <a class="logo" href="./"><span class="logo-mark">S</span><span>SOTIRIA<small>panel</small></span></a>
-    <h1>Entrar al panel</h1>
+    <button class="link back-role" id="lgBack" type="button">← Cambiar de rol</button>
+    <h1 id="lgTitle">Entrar al panel</h1>
+    <p class="role-tag" id="lgRole"></p>
     <label for="lgName">Tu nombre <small>(queda registrado en cada aprobación)</small></label>
     <input id="lgName" autocomplete="username" required>
     <label for="lgPw">Contraseña</label>

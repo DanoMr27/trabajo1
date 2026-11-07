@@ -24,6 +24,7 @@ const STATUS = {
   vencido: "Vencido",
   cancelado: "Cancelado",
 };
+const roleTxt = (r) => (r === "validator" ? " (validador)" : r === "admin" ? " (administrador)" : "");
 const pill = (s) => `<span class="st st-${s}">${esc(STATUS[s] || s)}</span>`;
 const REASONS = ["El pago no llegó a la cuenta", "El monto no coincide", "No se ve el comprobante completo", "El comprobante ya fue usado en otro pedido", "La fecha del comprobante no corresponde"];
 
@@ -65,18 +66,54 @@ function fileToDataUrl(file) {
 /* =====================================================================
    SESIÓN
    ===================================================================== */
+/* Roles: "admin" (acceso completo) y "validator" (solo comprobantes).
+   Ocultar pestañas es solo comodidad: el servidor responde 403 a todo
+   lo que el validador no puede usar. */
+const ROLE_INFO = {
+  admin: { title: "Entrar como Administrador", tag: "🛡️ Administrador · acceso completo" },
+  validator: { title: "Entrar como Validador", tag: "🧾 Validador · solo comprobantes" },
+};
+let PICKED = "admin";
+const isValidator = () => ME?.role === "validator";
+
+/* Al salir (o al vencer la sesión) se vuelve a la elección de rol y se
+   borra lo que estaba en pantalla */
 function showLogin() {
+  ME = null;
+  SUM = null;
+  lastPending = -1;
+  proofsKey = "";
+  $("#view").innerHTML = "";
+  $("#kpis").innerHTML = "";
   $("#app").hidden = true;
+  $("#login").hidden = true;
+  $("#roles").hidden = false;
+  document.title = "Panel | SOTIRIA";
+  setTimeout(() => $(`.role-card[data-role="${localStorage.getItem("st_admin_role") || "admin"}"]`)?.focus(), 50);
+}
+function pickRole(role) {
+  PICKED = role;
+  localStorage.setItem("st_admin_role", role);
+  $("#roles").hidden = true;
   $("#login").hidden = false;
-  $("#lgName").value = localStorage.getItem("st_admin_name") || "";
+  $("#lgTitle").textContent = ROLE_INFO[role].title;
+  $("#lgRole").textContent = ROLE_INFO[role].tag;
+  $("#lgErr").textContent = "";
+  $("#lgPw").value = "";
+  $("#lgName").value = localStorage.getItem("st_admin_name_" + role) || localStorage.getItem("st_admin_name") || "";
   setTimeout(() => ($("#lgName").value ? $("#lgPw") : $("#lgName")).focus(), 50);
 }
+$("#roles").onclick = (ev) => {
+  const c = ev.target.closest("[data-role]");
+  if (c) pickRole(c.dataset.role);
+};
+$("#lgBack").onclick = showLogin;
 $("#loginForm").onsubmit = async (ev) => {
   ev.preventDefault();
   $("#lgErr").textContent = "";
   try {
-    await api("/login", { method: "POST", body: { name: $("#lgName").value, password: $("#lgPw").value } });
-    localStorage.setItem("st_admin_name", $("#lgName").value.trim());
+    await api("/login", { method: "POST", body: { name: $("#lgName").value, password: $("#lgPw").value, role: PICKED } });
+    localStorage.setItem("st_admin_name_" + PICKED, $("#lgName").value.trim());
     $("#lgPw").value = "";
     start();
   } catch (e) {
@@ -95,11 +132,17 @@ async function start() {
     if (location.protocol === "file:") $("#lgErr").textContent = "Abre el panel desde el servidor: http://localhost:3000/admin.html";
     return showLogin();
   }
+  $("#roles").hidden = true;
   $("#login").hidden = true;
   $("#app").hidden = false;
-  $("#meName").textContent = "👤 " + ME.name;
-  $("#tabSim").hidden = ME.wa;
-  $("#simBanner").hidden = ME.wa;
+  const v = isValidator();
+  document.body.classList.toggle("role-validator", v);
+  $("#meName").textContent = (v ? "🧾 " : "👤 ") + ME.name + (v ? " · Validador" : "");
+  /* El validador solo ve "Comprobantes" */
+  $$("#tabs [data-tab]").forEach((b) => (b.hidden = v ? b.dataset.tab !== "proofs" : b.id === "tabSim" ? ME.wa : false));
+  $("#simBanner").hidden = v || ME.wa;
+  $("#kpis").hidden = v;
+  TAB = "proofs";
   const want = location.hash.slice(1);
   if ($(`[data-tab="${want}"]`) && !$(`[data-tab="${want}"]`).hidden) TAB = want;
   await refreshSummary();
@@ -115,6 +158,7 @@ async function refreshSummary() {
   } catch {
     return;
   }
+  if (isValidator()) return notifyPending(); // el validador solo recibe el número de pendientes
   const f = SUM.funciones;
   $("#kpis").innerHTML = `
     <div class="kpi ${SUM.pending ? "alert" : ""}"><small>Por validar</small><b>${SUM.pending}</b></div>
@@ -132,9 +176,14 @@ async function refreshSummary() {
     $(id).textContent = n;
     $(id).hidden = !n;
   };
-  b("#bProofs", SUM.pending);
   b("#bChats", SUM.unread);
   b("#bQR", SUM.missingQR.length);
+  notifyPending();
+}
+/* Badge, título de la pestaña y aviso visual/sonoro (ambos roles) */
+function notifyPending() {
+  $("#bProofs").textContent = SUM.pending;
+  $("#bProofs").hidden = !SUM.pending;
   document.title = (SUM.pending ? `(${SUM.pending}) ` : "") + "Panel | SOTIRIA";
   if (lastPending >= 0 && SUM.pending > lastPending) {
     beep();
@@ -176,6 +225,7 @@ $("#tabs").onclick = (ev) => {
   if (b) show(b.dataset.tab);
 };
 function show(tab) {
+  if (isValidator()) tab = "proofs";
   TAB = tab;
   history.replaceState(null, "", "#" + tab);
   $$("#tabs [data-tab]").forEach((b) => b.classList.toggle("on", b.dataset.tab === tab));
@@ -224,9 +274,9 @@ function proofCard(o) {
       ${o.dupWarning?.length ? `<p class="warn">⚠ Esta misma imagen se envió en: ${o.dupWarning.map(esc).join(", ")}</p>` : ""}
       ${o.rejections?.length ? `<p class="msg tiny">Rechazado antes ${o.rejections.length} vez/veces: “${esc(o.rejections[o.rejections.length - 1].reason)}”</p>` : ""}
       <div class="p-act">
-        <button class="btn ok-b" type="button" data-approve="${o.id}">✓ Aprobar y enviar ${o.product === "obra" ? "entrada" : "confirmación"}</button>
+        <button class="btn ok-b" type="button" data-approve="${o.id}">✓ ${isValidator() ? "Validar" : "Aprobar"} y enviar ${o.product === "obra" ? "entrada" : "confirmación"}</button>
         <button class="btn ghost" type="button" data-reject="${o.id}">Rechazar</button>
-        <button class="link" type="button" data-chat="${esc(o.phone || "")}">Ver chat</button>
+        ${isValidator() ? "" : `<button class="link" type="button" data-chat="${esc(o.phone || "")}">Ver chat</button>`}
       </div>
     </div>
   </article>`;
@@ -254,7 +304,7 @@ async function approve(id, btn) {
   btn.disabled = true;
   try {
     await api(`/orders/${id}/approve`, { method: "POST" });
-    toast(`✓ ${id} aprobado. Entrada enviada.`);
+    toast(`✓ ${id} ${isValidator() ? "validado" : "aprobado"}. Entrada enviada.`);
     closeDlg();
     await refreshSummary();
     show(TAB);
@@ -351,11 +401,11 @@ async function orderDlg(id) {
       ${o.buyer.addr ? `<div><dt>Dirección</dt><dd>${esc(o.buyer.addr)}</dd></div>` : ""}
       <div><dt>Origen</dt><dd>${esc(o.source?.src || "")}${o.source?.campaign ? " · " + esc(o.source.campaign) : ""}</dd></div>
       ${o.ticket ? `<div><dt>Entrada</dt><dd>${o.ticketLink ? `<a href="${esc(o.ticketLink)}" target="_blank">${esc(o.ticket.code)}</a> · ingresaron ${o.ticket.checkedIn}/${o.qty}` : esc(o.ticket.code)}</dd></div>` : ""}
-      ${o.validatedBy ? `<div><dt>Validado por</dt><dd>${esc(o.validatedBy)} · ${when(o.paidAt)}</dd></div>` : ""}
+      ${o.validatedBy ? `<div><dt>Validado por</dt><dd>${esc(o.validatedBy)}${roleTxt(o.validatedRole)} · ${when(o.paidAt)}</dd></div>` : ""}
     </dl>
     ${o.proofs.length ? `<h3 class="h3">Comprobantes</h3><div class="thumbs big">${o.proofs.map((p) => (p.mime === "application/pdf" ? `<a class="pdf" href="${media(p.id)}" target="_blank">📄 PDF</a>` : `<img src="${media(p.id)}" alt="Comprobante" data-zoom>`)).join("")}</div>` : ""}
     <h3 class="h3">Historial</h3>
-    <ul class="hist">${o.history.slice().reverse().map((h) => `<li><small>${when(h.at)}</small> <b>${esc(STATUS[h.s] || h.s)}</b> · ${esc(h.by)}${h.note ? ` — ${esc(h.note)}` : ""}</li>`).join("")}</ul>
+    <ul class="hist">${o.history.slice().reverse().map((h) => `<li><small>${when(h.at)}</small> <b>${esc(STATUS[h.s] || h.s)}</b> · ${esc(h.by)}${roleTxt(h.role)}${h.note ? ` — ${esc(h.note)}` : ""}</li>`).join("")}</ul>
     <div class="od-act">
       ${open ? `<button class="btn ok-b" type="button" data-approve="${o.id}">✓ Aprobar pago</button>` : ""}
       ${o.status === "comprobante" ? `<button class="btn ghost" type="button" data-reject="${o.id}">Rechazar comprobante</button>` : ""}

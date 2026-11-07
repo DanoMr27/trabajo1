@@ -24,8 +24,8 @@ node server/server.js
 ```
 
 - Web: http://localhost:3000
-- Panel: http://localhost:3000/admin.html. La **contraseña** aparece en la consola la primera vez; se cambia
-  con `node server/set-password.js`.
+- Panel: http://localhost:3000/admin.html. Primero eliges con qué rol entras (ver [Roles del panel](#roles-del-panel)).
+  Las **contraseñas** de ambos roles aparecen en la consola la primera vez que arranca el servidor.
 
 Primeros pasos en el panel:
 
@@ -48,6 +48,31 @@ Agrega `?src=` al enlace de cada publicación para saber de qué red vienen los 
 | Podcast (lleva a "Avísame") | `https://tu-dominio.com/?p=podcast&src=instagram` |
 
 ## Panel
+
+### Roles del panel
+
+Al abrir el panel se elige el rol. Cada uno tiene **su propia contraseña**, y quien entra escribe su nombre: queda
+registrado, junto con su rol, en cada pago que valida o rechaza.
+
+| Rol | Qué puede hacer |
+|---|---|
+| **Administrador** | Todo el panel (todas las pestañas de abajo). |
+| **Validador** | Solo la pestaña **Comprobantes**: ver los pendientes con su imagen y datos básicos, el aviso de comprobante repetido, **Validar** (envía la entrada única por WhatsApp) y **Rechazar** (pide el motivo). Recibe el aviso visual y sonoro de comprobantes nuevos. No ve estadísticas, pedidos, chats, clientes, QR de cobro, puerta ni simulador. |
+
+El servidor comprueba el rol en cada ruta: si un validador intenta usar otra sección, responde **403**.
+
+**Contraseñas:**
+
+| Rol | Variable de entorno | Si no hay variable, se guarda cifrada en | Cambiarla |
+|---|---|---|---|
+| Administrador | `ADMIN_PASSWORD` | `server/admin.json` | `node server/set-password.js` |
+| Validador | `VALIDATOR_PASSWORD` | `server/validator.json` | `node server/set-password.js validator` |
+
+Si no existe la contraseña del validador, el servidor genera una al arrancar y la muestra en la consola. Los
+archivos `admin.json` y `validator.json` no se suben a GitHub. Si la variable de entorno está definida, tiene
+prioridad sobre el archivo.
+
+### Pestañas (administrador)
 
 | Pestaña | Para qué |
 |---|---|

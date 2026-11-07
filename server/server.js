@@ -37,6 +37,7 @@ const ROOT = path.join(__dirname, "..");
 const DIR = __dirname;
 const DB_FILE = path.join(DIR, "db.json");
 const ADMIN_FILE = path.join(DIR, "admin.json");
+const VALIDATOR_FILE = path.join(DIR, "validator.json");
 const UPLOADS = path.join(DIR, "uploads");
 const QR_DIR = path.join(DIR, "qr-cobro");
 const PUBLIC_URL = (process.env.PUBLIC_URL || `http://localhost:${PORT}`).replace(/\/$/, "");
@@ -113,10 +114,10 @@ function detalle(o) {
 }
 const firstName = (o) => (o.buyer?.n || o.waName || "").split(" ")[0] || "";
 
-function touch(o, s, by, note) {
+function touch(o, s, by, note, role) {
   o.status = s;
   o.updatedAt = now();
-  o.history.push({ at: o.updatedAt, s, by: by || "sistema", note: note || "" });
+  o.history.push({ at: o.updatedAt, s, by: by || "sistema", note: note || "", ...(role ? { role } : {}) });
   save();
 }
 
@@ -301,12 +302,13 @@ async function attachProof(o, msg, by) {
 }
 
 /* Aprobar: genera la entrada única y la envía por WhatsApp */
-async function approve(o, by) {
+async function approve(o, by, role) {
   if (o.status === "pagado") return;
   o.ticket = { code: `SOT-${rnd(4)}-${rnd(4)}-${rnd(4)}`, issuedAt: now(), checkedIn: 0 };
   o.paidAt = now();
   o.validatedBy = by;
-  touch(o, "pagado", by, "Pago validado");
+  if (role) o.validatedRole = role;
+  touch(o, "pagado", by, "Pago validado", role);
   if (!o.phone) return;
   const vars = { first: firstName(o), code: o.id, detalle: detalle(o), amount: o.amount, ticketCode: o.ticket.code };
   if (o.product === "obra") {
@@ -321,33 +323,42 @@ async function approve(o, by) {
   }
 }
 
-async function reject(o, reason, by) {
-  o.rejections = [...(o.rejections || []), { at: now(), by, reason }];
+async function reject(o, reason, by, role) {
+  o.rejections = [...(o.rejections || []), { at: now(), by, reason, ...(role ? { role } : {}) }];
   o.qrSentAt = now(); // le damos otras 24 h para reenviar
-  touch(o, "qr_enviado", by, "Comprobante rechazado: " + reason);
+  touch(o, "qr_enviado", by, "Comprobante rechazado: " + reason, role);
   if (o.phone) await sendText(o.phone, TX.rechazo({ code: o.id, motivo: reason }), { orderId: o.id });
 }
 
 /* =====================================================================
-   PANEL: contraseña y sesiones
+   PANEL: roles, contraseñas y sesiones
+   - admin:     acceso completo al panel.
+   - validator: solo comprobantes pendientes (ver, validar, rechazar).
+   Cada rol tiene su propia contraseña: variable de entorno o hash en
+   server/admin.json / server/validator.json.
    ===================================================================== */
-const sessions = new Map(); // token → { exp, name }
+const ROLES = {
+  admin: { env: "ADMIN_PASSWORD", file: ADMIN_FILE, label: "administrador" },
+  validator: { env: "VALIDATOR_PASSWORD", file: VALIDATOR_FILE, label: "validador" },
+};
+const sessions = new Map(); // token → { exp, name, role }
 const loginFails = new Map(); // ip → { n, until }
 
-function credential() {
-  if (process.env.ADMIN_PASSWORD) return { plain: process.env.ADMIN_PASSWORD };
+function credential(role = "admin") {
+  const r = ROLES[role];
+  if (process.env[r.env]) return { plain: process.env[r.env] };
   try {
-    return JSON.parse(fs.readFileSync(ADMIN_FILE, "utf8"));
+    return JSON.parse(fs.readFileSync(r.file, "utf8"));
   } catch {
     return null;
   }
 }
-function writeCredential(pw) {
+function writeCredential(pw, role = "admin") {
   const salt = crypto.randomBytes(16);
-  fs.writeFileSync(ADMIN_FILE, JSON.stringify({ salt: salt.toString("hex"), hash: crypto.scryptSync(pw, salt, 64).toString("hex"), updatedAt: new Date().toISOString() }, null, 2));
+  fs.writeFileSync(ROLES[role].file, JSON.stringify({ salt: salt.toString("hex"), hash: crypto.scryptSync(pw, salt, 64).toString("hex"), updatedAt: new Date().toISOString() }, null, 2));
 }
-function checkPassword(pw) {
-  const c = credential();
+function checkPassword(pw, role = "admin") {
+  const c = credential(role);
   if (!c || typeof pw !== "string" || !pw) return false;
   let a, b;
   if (c.plain != null) {
@@ -451,6 +462,28 @@ function adminOrder(o) {
     hasQR: !!qrFile(o.amount),
   };
 }
+
+/* Lo único que ve el validador de un pedido: datos básicos + comprobante */
+function proofView(o) {
+  return {
+    id: o.id,
+    status: o.status,
+    label: STATUS[o.status],
+    product: o.product,
+    detalle: detalle(o),
+    qty: o.qty,
+    amount: o.amount,
+    buyer: { n: o.buyer?.n || "", ci: o.buyer?.ci || "", addr: o.buyer?.addr || "" },
+    phone: o.phone,
+    waName: o.waName,
+    proofAt: o.proofAt,
+    updatedAt: o.updatedAt,
+    proofs: (o.proofs || []).map((id) => ({ id, mime: db.media[id]?.mime })),
+    dupWarning: o.dupWarning || [],
+    rejections: (o.rejections || []).map((r) => ({ at: r.at, reason: r.reason })),
+  };
+}
+const isProofOfPending = (mediaId) => allOrders().some((o) => o.status === "comprobante" && (o.proofs || []).includes(mediaId));
 
 function summary() {
   const list = allOrders();
@@ -586,7 +619,8 @@ function chats() {
    ===================================================================== */
 const routes = [];
 const route = (method, re, fn, opts = {}) => routes.push({ method, re, fn, ...opts });
-const A = { admin: true };
+const A = { admin: true }; // solo administrador
+const AV = { admin: true, roles: ["admin", "validator"] }; // administrador y validador
 
 /* ---------- públicas ---------- */
 route("GET", /^\/api\/health$/, () => [200, { ok: true, wa: WA.enabled, whatsapp: CONTACT.whatsapp }]);
@@ -663,7 +697,7 @@ route("GET", /^\/api\/tickets\/(SOT-[A-Z0-9-]{14})$/, (m, b, req) => {
   const o = allOrders().find((x) => x.ticket?.code === m[1]);
   if (!o || o.product !== "obra") return [404, { valid: false, error: "Entrada no encontrada" }];
   const f = funcionOf(o);
-  const admin = !!adminOf(req);
+  const admin = adminOf(req)?.role === "admin"; // la puerta es del administrador
   const parts = o.buyer.n.split(" ");
   return [
     200,
@@ -712,58 +746,69 @@ route("POST", /^\/api\/admin\/login$/, (m, b, req) => {
   if (f?.until > now()) return [429, { error: `Demasiados intentos. Espera ${Math.ceil((f.until - now()) / 6e4)} min.` }];
   const name = String(b.name || "").trim().slice(0, 40);
   if (!name) return [400, { error: "Escribe tu nombre" }];
-  if (!checkPassword(b.password)) {
+  const role = b.role === "validator" ? "validator" : "admin"; // sin rol = administrador (compatibilidad)
+  if (!checkPassword(b.password, role)) {
     const n = (f?.n || 0) + 1;
     loginFails.set(ip, { n, until: n >= 5 ? now() + 15 * 6e4 : 0 });
     return [401, { error: "Contraseña incorrecta" }];
   }
   loginFails.delete(ip);
   const token = crypto.randomBytes(32).toString("hex");
-  sessions.set(token, { exp: now() + SESSION_HOURS * 36e5, name });
-  return [200, { ok: true, name }, null, { "Set-Cookie": sessionCookie(req, token, SESSION_HOURS * 3600) }];
+  sessions.set(token, { exp: now() + SESSION_HOURS * 36e5, name, role });
+  return [200, { ok: true, name, role }, null, { "Set-Cookie": sessionCookie(req, token, SESSION_HOURS * 3600) }];
 });
 route("POST", /^\/api\/admin\/logout$/, (m, b, req) => {
   sessions.delete(cookies(req).st_admin);
   return [200, { ok: true }, null, { "Set-Cookie": sessionCookie(req, "", 0) }];
 });
-route("GET", /^\/api\/admin\/me$/, (m, b, req, url, raw, s) => [200, { name: s.name, wa: WA.enabled, publicUrl: PUBLIC_URL, whatsapp: CONTACT.whatsapp }], A);
+route("GET", /^\/api\/admin\/me$/, (m, b, req, url, raw, s) =>
+  s.role === "validator" ? [200, { name: s.name, role: s.role }] : [200, { name: s.name, role: s.role, wa: WA.enabled, publicUrl: PUBLIC_URL, whatsapp: CONTACT.whatsapp }], AV);
 
 /* ---------- panel: datos ---------- */
-route("GET", /^\/api\/admin\/summary$/, () => [200, summary()], A);
+route("GET", /^\/api\/admin\/summary$/, (m, b, req, url, raw, s) => (s.role === "validator" ? [200, { pending: allOrders().filter((o) => o.status === "comprobante").length }] : [200, summary()]), AV);
 route("GET", /^\/api\/admin\/stats$/, (m, b, req, url) => [200, stats(url.searchParams.get("range"))], A);
 
-route("GET", /^\/api\/admin\/orders$/, (m, b, req, url) => {
+const FORBIDDEN = [403, { error: "No tienes permiso para esta sección" }];
+const isValidator = (s) => s.role === "validator";
+
+route("GET", /^\/api\/admin\/orders$/, (m, b, req, url, raw, s) => {
   const st = url.searchParams.get("status") || "";
+  /* El validador solo puede listar los comprobantes pendientes */
+  if (isValidator(s) && (st !== "comprobante" || url.searchParams.get("q"))) return FORBIDDEN;
   const q = (url.searchParams.get("q") || "").toLowerCase();
   const list = allOrders()
     .filter((o) => (!st || o.status === st) && (!q || [o.id, o.buyer.n, o.buyer.ci, o.phone, o.waName].join(" ").toLowerCase().includes(q)))
     .sort((a, b) => (st === "comprobante" ? a.proofAt - b.proofAt : b.updatedAt - a.updatedAt))
     .slice(0, 300)
-    .map(adminOrder);
+    .map(isValidator(s) ? proofView : adminOrder);
   return [200, list];
-}, A);
+}, AV);
 
-const orderRoute = (method, action, fn) =>
+const orderRoute = (method, action, fn, opts = A) =>
   route(method, new RegExp(`^/api/admin/orders/(ST-[A-Z0-9]{5})${action ? "/" + action : ""}$`), async (m, b, req, url, raw, s) => {
     const o = db.orders[m[1]];
     if (!o) return [404, { error: "Pedido no encontrado" }];
-    return fn(expire(o), b, s);
-  }, A);
+    expire(o);
+    /* El validador solo trabaja sobre pedidos con comprobante pendiente */
+    if (isValidator(s) && o.status !== "comprobante") return [409, { error: "Este pedido ya no tiene un comprobante pendiente" }];
+    return fn(o, b, s);
+  }, opts);
+const who = (s) => s.name; // el rol se guarda aparte (validatedRole, history[].role)
 
-orderRoute("GET", "", (o) => [200, { ...adminOrder(o), messages: o.phone ? db.messages.filter((x) => x.phone === o.phone) : [] }]);
+orderRoute("GET", "", (o, b, s) => (isValidator(s) ? [200, proofView(o)] : [200, { ...adminOrder(o), messages: o.phone ? db.messages.filter((x) => x.phone === o.phone) : [] }]), AV);
 orderRoute("POST", "approve", async (o, b, s) => {
   if (o.status === "pagado") return [409, { error: "Este pedido ya fue aprobado" }];
   if (["cancelado"].includes(o.status)) return [409, { error: "El pedido está cancelado" }];
-  await approve(o, s.name);
-  return [200, adminOrder(o)];
-});
+  await approve(o, who(s), s.role);
+  return [200, isValidator(s) ? proofView(o) : adminOrder(o)];
+}, AV);
 orderRoute("POST", "reject", async (o, b, s) => {
   const reason = String(b.reason || "").trim().slice(0, 200);
   if (!reason) return [400, { error: "Escribe el motivo" }];
   if (o.status === "pagado") return [409, { error: "El pedido ya está pagado" }];
-  await reject(o, reason, s.name);
-  return [200, adminOrder(o)];
-});
+  await reject(o, reason, who(s), s.role);
+  return [200, isValidator(s) ? proofView(o) : adminOrder(o)];
+}, AV);
 orderRoute("POST", "send-qr", async (o, b, s) => {
   if (!o.phone) return [409, { error: "El cliente todavía no escribió por WhatsApp" }];
   if (!qrFile(o.amount) && WA.enabled) return [409, { error: `Primero carga el QR de Bs ${o.amount} en "QR de cobro"` }];
@@ -802,7 +847,9 @@ route("POST", /^\/api\/admin\/chats\/(\d+)\/send$/, async (m, b, req, url, raw, 
   return msg.state === "error" ? [502, { error: "WhatsApp: " + msg.error }] : [200, msg];
 }, A);
 
-route("GET", /^\/api\/admin\/media\/([\w-]+)$/, (m) => {
+route("GET", /^\/api\/admin\/media\/([\w-]+)$/, (m, b, req, url, raw, s) => {
+  /* El validador solo puede ver comprobantes de pedidos pendientes */
+  if (isValidator(s) && !isProofOfPending(m[1])) return FORBIDDEN;
   const md = db.media[m[1]];
   if (!md) return [404, { error: "No encontrado" }];
   try {
@@ -810,7 +857,7 @@ route("GET", /^\/api\/admin\/media\/([\w-]+)$/, (m) => {
   } catch {
     return [404, { error: "Archivo no encontrado" }];
   }
-}, A);
+}, AV);
 
 /* QR de cobro */
 route("GET", /^\/api\/admin\/qr$/, () => [200, QR_AMOUNTS.map((a) => ({ amount: a, ok: !!qrFile(a) }))], A);
@@ -923,6 +970,8 @@ const server = http.createServer(async (req, res) => {
       if (!m || req.method !== r.method) continue;
       let s = null;
       if (r.admin && !(s = adminOf(req))) return send(res, 401, { error: "Inicia sesión" });
+      /* Permisos por rol: si la ruta no lo permite → 403 (no basta con ocultarla en el panel) */
+      if (r.admin && !(r.roles || ["admin"]).includes(s.role)) return send(res, 403, { error: "No tienes permiso para esta sección" });
       try {
         const { raw, json } = req.method === "POST" ? await readBody(req, r.big ? 12e6 : 1e6) : { raw: Buffer.alloc(0), json: {} };
         const [code, out, type, headers] = await r.fn(m, json, req, url, raw, s);
@@ -955,13 +1004,23 @@ const server = http.createServer(async (req, res) => {
 setInterval(() => allOrders(), 5 * 6e4); // vence pedidos abandonados
 
 if (require.main === module) {
-  if (!credential()) {
+  if (!credential("admin")) {
     const pw = rnd(4) + "-" + rnd(4) + "-" + rnd(4);
-    writeCredential(pw);
+    writeCredential(pw, "admin");
     console.log("\n┌──────────────────────────────────────────────┐");
     console.log(`│  Contraseña del panel: ${pw.padEnd(22)}│`);
     console.log("│  Guárdala. Cámbiala con:                     │");
     console.log("│  node server/set-password.js                 │");
+    console.log("└──────────────────────────────────────────────┘\n");
+  }
+  if (!credential("validator")) {
+    const pw = rnd(4) + "-" + rnd(4) + "-" + rnd(4);
+    writeCredential(pw, "validator");
+    console.log("\n┌──────────────────────────────────────────────┐");
+    console.log(`│  Contraseña del VALIDADOR: ${pw.padEnd(18)}│`);
+    console.log("│  Solo da acceso a los comprobantes.          │");
+    console.log("│  Cámbiala con:                               │");
+    console.log("│  node server/set-password.js validator       │");
     console.log("└──────────────────────────────────────────────┘\n");
   }
   server.listen(PORT, () => {
