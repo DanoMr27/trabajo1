@@ -93,7 +93,7 @@
   ];
 
   /* ⚠ Número de WhatsApp de ventas: código de país + número, sin "+" ni espacios */
-  const CONTACT = { whatsapp: "59170000000", email: "ventas@sotiria.tv" };
+  const CONTACT = { whatsapp: "59177314953", email: "ventas@sotiria.tv" };
 
   /* Montos que necesitan un QR de cobro (uno por cada cantidad posible) */
   const QR_AMOUNTS = [
