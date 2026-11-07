@@ -57,7 +57,7 @@
         { id: "envio", n: "Envío dentro de Santa Cruz (se coordina por WhatsApp)", needsAddress: true },
       ],
       cap: 500,
-      img: IMG("1512820790803-83ca734da794"),
+      img: "img/libro-la-ultima-jugada.jpg",
       c: ["#ffb547", "#ff4f6d"],
     },
 
@@ -80,7 +80,7 @@
   const VIDEOS = [
     { t: "Adelanto: El Último Telón", tag: "Adelanto", src: SAMPLE, poster: IMG("1507676184212-d03ab07a01bf", 900), product: "obra" },
     { t: "Detrás de cámaras", tag: "Detrás de cámaras", src: SAMPLE, poster: IMG("1516280440614-37939bbacd81", 900), product: "obra" },
-    { t: "Presentación del libro", tag: "El libro", src: SAMPLE, poster: IMG("1512820790803-83ca734da794", 900), product: "libro" },
+    { t: "Presentación del libro", tag: "El libro", src: SAMPLE, poster: "img/libro-la-ultima-jugada.jpg", product: "libro" },
     { t: "Primer vistazo al podcast", tag: "Próximamente", src: SAMPLE, poster: IMG("1590602847861-f357a9332bbc", 900) },
   ];
 
