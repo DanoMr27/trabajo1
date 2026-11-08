@@ -33,6 +33,23 @@ Primeros pasos en el panel:
 2. **Simulador**: prueba una compra completa sin WhatsApp real.
 3. Para conectar el WhatsApp real sigue **[WHATSAPP.md](WHATSAPP.md)**.
 
+### Configuración (.env)
+
+Copia `.env.example` como `.env` en la carpeta del proyecto y complétalo. El servidor lo lee al arrancar, y las
+variables definidas en el sistema tienen prioridad. El `.env` no se sube a GitHub y la web no deja descargarlo.
+
+| Variable | Para qué |
+|---|---|
+| `WHATSAPP_MODE` | `simulator` (por defecto, sin WhatsApp real) o `cloud` (Cloud API de Meta) |
+| `WHATSAPP_ACCESS_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_WABA_ID` | Datos de la app de Meta |
+| `WHATSAPP_VERIFY_TOKEN` | Frase inventada para verificar el webhook |
+| `META_APP_SECRET` | Comprueba que los avisos vienen de Meta |
+| `WHATSAPP_GRAPH_VERSION` | Versión de la API (p. ej. `v23.0`) |
+| `PUBLIC_BASE_URL` | Dirección HTTPS pública (enlaces de las entradas) |
+| `WHATSAPP_BUSINESS_NUMBER` | `59177314953` |
+
+Webhook para Meta: `https://TU-DOMINIO/api/whatsapp/webhook`. Comprobar el servidor: `https://TU-DOMINIO/api/health`.
+
 Si abres `index.html` sin servidor, la página se ve igual y el botón de compra abre WhatsApp con el pedido escrito,
 pero el QR automático, el panel y el seguimiento no funcionan.
 

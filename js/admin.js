@@ -19,13 +19,16 @@ const STATUS = {
   nuevo: "Esperando WhatsApp",
   esperando_qr: "Falta enviar QR",
   qr_enviado: "Esperando comprobante",
-  comprobante: "Por validar",
+  comprobante: "Pendiente",
   pagado: "Pagado",
   vencido: "Vencido",
   cancelado: "Cancelado",
 };
 const roleTxt = (r) => (r === "validator" ? " (validador)" : r === "admin" ? " (administrador)" : "");
-const pill = (s) => `<span class="st st-${s}">${esc(STATUS[s] || s)}</span>`;
+/* Pasos del historial que no son estados del pedido */
+const HIST = { entrada_enviada: "Entrada enviada", envio_fallido: "Envío fallido", ingreso: "Ingreso", reactivado: "Reactivado" };
+/* label: estado que calcula el servidor (p. ej. "Entrada enviada" o "Pagado · entrada sin enviar") */
+const pill = (s, label) => `<span class="st st-${s}${/sin enviar/.test(label || "") ? " st-warn" : ""}">${esc(label || STATUS[s] || s)}</span>`;
 const REASONS = ["El pago no llegó a la cuenta", "El monto no coincide", "No se ve el comprobante completo", "El comprobante ya fue usado en otro pedido", "La fecha del comprobante no corresponde"];
 
 let ME = null;
@@ -303,8 +306,9 @@ async function approve(id, btn) {
   if (!confirm(`¿Confirmas que el pago del pedido ${id} llegó a la cuenta?\n\nSe enviará la entrada al cliente por WhatsApp.`)) return;
   btn.disabled = true;
   try {
-    await api(`/orders/${id}/approve`, { method: "POST" });
-    toast(`✓ ${id} ${isValidator() ? "validado" : "aprobado"}. Entrada enviada.`);
+    const r = await api(`/orders/${id}/approve`, { method: "POST" });
+    if (r.ticketSent && r.ticketSent.ok === false) toast(`⚠ ${id} ${isValidator() ? "validado" : "aprobado"}, pero WhatsApp no aceptó el envío: ${r.ticketSent.error || "error"}. Avisa al administrador para reenviarla.`, true);
+    else toast(`✓ ${id} ${isValidator() ? "validado" : "aprobado"}. Entrada enviada.`);
     closeDlg();
     await refreshSummary();
     show(TAB);
@@ -372,7 +376,7 @@ async function loadOrders() {
       ? `<div class="table-wrap"><table><thead><tr><th>Pedido</th><th>Cliente</th><th>Detalle</th><th>Monto</th><th>Estado</th><th>Origen</th><th>Actualizado</th></tr></thead><tbody>
         ${list
           .map(
-            (o) => `<tr data-order="${o.id}" tabindex="0"><td><b class="code">${o.id}</b></td><td>${esc(o.buyer.n)}<br><small>${esc(phoneFmt(o.phone))}</small></td><td>${esc(o.detalle)}</td><td>${bs(o.amount)}</td><td>${pill(o.status)}${o.product === "libro" && o.status === "pagado" ? `<br><small>${o.delivered ? "📦 Entregado" : "Por entregar"}</small>` : ""}</td><td><small>${esc(o.source?.src || "")}</small></td><td><small>${ago(o.updatedAt)}</small></td></tr>`,
+            (o) => `<tr data-order="${o.id}" tabindex="0"><td><b class="code">${o.id}</b></td><td>${esc(o.buyer.n)}<br><small>${esc(phoneFmt(o.phone))}</small></td><td>${esc(o.detalle)}</td><td>${bs(o.amount)}</td><td>${pill(o.status, o.label)}${o.product === "libro" && o.status === "pagado" ? `<br><small>${o.delivered ? "📦 Entregado" : "Por entregar"}</small>` : ""}</td><td><small>${esc(o.source?.src || "")}</small></td><td><small>${ago(o.updatedAt)}</small></td></tr>`,
           )
           .join("")}</tbody></table></div>`
       : `<div class="empty"><p>No hay pedidos con ese filtro.</p></div>`;
@@ -391,7 +395,8 @@ async function orderDlg(id) {
   }
   const open = !["pagado", "cancelado"].includes(o.status);
   openDlg(`
-    <div class="od-head"><h2 id="dlgTitle"><span class="code">${o.id}</span></h2>${pill(o.status)}</div>
+    <div class="od-head"><h2 id="dlgTitle"><span class="code">${o.id}</span></h2>${pill(o.status, o.label)}</div>
+    ${o.ticketSent && o.ticketSent.ok === false ? `<p class="warn">⚠ WhatsApp no aceptó el envío ${o.product === "obra" ? "de la entrada" : "de la confirmación"}: ${esc(o.ticketSent.error || "")}. Usa <b>Reenviar</b>; si pasaron más de 24 h, pide al cliente que escriba primero.</p>` : ""}
     <p class="p-amt">${bs(o.amount)}</p><p>${esc(o.detalle)}</p>
     <dl class="p-dl">
       <div><dt>Nombre</dt><dd>${esc(o.buyer.n)}</dd></div>
@@ -405,10 +410,11 @@ async function orderDlg(id) {
     </dl>
     ${o.proofs.length ? `<h3 class="h3">Comprobantes</h3><div class="thumbs big">${o.proofs.map((p) => (p.mime === "application/pdf" ? `<a class="pdf" href="${media(p.id)}" target="_blank">📄 PDF</a>` : `<img src="${media(p.id)}" alt="Comprobante" data-zoom>`)).join("")}</div>` : ""}
     <h3 class="h3">Historial</h3>
-    <ul class="hist">${o.history.slice().reverse().map((h) => `<li><small>${when(h.at)}</small> <b>${esc(STATUS[h.s] || h.s)}</b> · ${esc(h.by)}${roleTxt(h.role)}${h.note ? ` — ${esc(h.note)}` : ""}</li>`).join("")}</ul>
+    <ul class="hist">${o.history.slice().reverse().map((h) => `<li><small>${when(h.at)}</small> <b>${esc(HIST[h.s] || STATUS[h.s] || h.s)}</b> · ${esc(h.by)}${roleTxt(h.role)}${h.note ? ` — ${esc(h.note)}` : ""}</li>`).join("")}</ul>
     <div class="od-act">
       ${open ? `<button class="btn ok-b" type="button" data-approve="${o.id}">✓ Aprobar pago</button>` : ""}
       ${o.status === "comprobante" ? `<button class="btn ghost" type="button" data-reject="${o.id}">Rechazar comprobante</button>` : ""}
+      ${o.status === "pagado" && o.ticket ? `<button class="btn ${o.ticketSent && o.ticketSent.ok === false ? "" : "ghost"}" type="button" id="odTk">Reenviar ${o.product === "obra" ? "entrada" : "confirmación"}</button>` : ""}
       ${open && o.phone ? `<button class="btn ghost" type="button" id="odQR">${o.status === "nuevo" || o.status === "esperando_qr" ? "Enviar QR" : "Reenviar QR"}</button>` : ""}
       ${o.product === "libro" && o.status === "pagado" ? `<button class="btn ghost" type="button" id="odDel">${o.delivered ? "Marcar como NO entregado" : "📦 Marcar entregado"}</button>` : ""}
       ${o.phone ? `<button class="btn ghost" type="button" data-chat="${esc(o.phone)}">Ver chat</button>` : ""}
@@ -431,6 +437,7 @@ async function orderDlg(id) {
       }
     });
   act("#odQR", "send-qr", {}, "QR enviado por WhatsApp");
+  act("#odTk", "resend-ticket", {}, "Enviada de nuevo por WhatsApp");
   act("#odDel", "delivered", { value: !o.delivered }, "Actualizado");
   act("#odCancel", "cancel", {}, "Pedido cancelado");
 }
@@ -460,7 +467,7 @@ async function refreshChat(silent) {
           (c) => `<button type="button" class="c-item${c.phone === CHAT ? " on" : ""}" data-phone="${c.phone}">
       <span class="c-name">${esc(c.name || phoneFmt(c.phone))}${c.unread ? `<b class="badge">${c.unread}</b>` : ""}</span>
       <span class="c-last">${c.last.dir === "out" ? "Tú: " : ""}${c.last.media && !c.last.text ? "📷 Imagen" : esc((c.last.text || "").slice(0, 60))}</span>
-      <span class="c-meta">${c.order ? pill(c.order.status) : ""}<small>${ago(c.last.at)}</small></span></button>`,
+      <span class="c-meta">${c.order ? pill(c.order.status, c.order.label) : ""}<small>${ago(c.last.at)}</small></span></button>`,
         )
         .join("")
     : `<div class="empty"><p>Todavía no hay mensajes.</p></div>`;
@@ -481,7 +488,7 @@ async function loadConversation(silent) {
   const openOrders = d.orders.filter((o) => !["pagado", "cancelado"].includes(o.status));
   $("#cpane").innerHTML = `
     <div class="c-head"><div><b>${esc(d.orders[0]?.buyer.n || phoneFmt(CHAT))}</b><small>${esc(phoneFmt(CHAT))}</small></div>
-      <div class="c-orders">${d.orders.slice(0, 3).map((o) => `<button type="button" class="chip-o" data-order="${o.id}">${o.id} ${pill(o.status)}</button>`).join("")}</div></div>
+      <div class="c-orders">${d.orders.slice(0, 3).map((o) => `<button type="button" class="chip-o" data-order="${o.id}">${o.id} ${pill(o.status, o.label)}</button>`).join("")}</div></div>
     <div class="msgs" id="msgs">${d.messages.map((m) => bubble(m, openOrders)).join("")}</div>
     <form class="composer" id="cform"><textarea id="cmsg" rows="1" placeholder="Escribe un mensaje…">${esc(draft)}</textarea><button class="btn" type="submit">Enviar</button></form>`;
   const box = $("#msgs");

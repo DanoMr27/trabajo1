@@ -6,3 +6,6 @@ server/uploads/
 server/qr-cobro/
 node_modules/
 server/db-legacy.json
+.env
+.env.*
+!.env.example

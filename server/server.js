@@ -14,19 +14,37 @@
    4. Quien valida revisa la cuenta del banco y pulsa "Aprobar": se
       genera la entrada única y se envía sola a ese chat.
 
-   Variables de entorno (todas opcionales):
-     PORT             puerto (3000)
-     PUBLIC_URL       dirección pública de la web, para los enlaces que
-                      se envían por WhatsApp (https://tudominio.com)
-     ADMIN_PASSWORD   contraseña del panel (o: node server/set-password.js)
-     WA_TOKEN, WA_PHONE_ID, WA_VERIFY_TOKEN, WA_APP_SECRET
-                      WhatsApp Business real (ver WHATSAPP.md). Sin ellas
-                      se usa el simulador del panel.
+   Configuración: archivo .env en la carpeta del proyecto (copia
+   .env.example) o variables de entorno del sistema, que tienen prioridad.
+     PORT                 puerto (3000)
+     PUBLIC_BASE_URL      dirección pública HTTPS de la web, para los
+                          enlaces que se envían por WhatsApp
+     ADMIN_PASSWORD, VALIDATOR_PASSWORD   (o: node server/set-password.js)
+     WHATSAPP_MODE        simulator | cloud   (ver server/whatsapp.js y WHATSAPP.md)
    ===================================================================== */
 const http = require("http");
 const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
+
+/* Lee el archivo .env (sin dependencias). Lo ya definido en el sistema no se pisa. */
+(function loadEnv(file) {
+  let txt;
+  try {
+    txt = fs.readFileSync(file, "utf8");
+  } catch {
+    return;
+  }
+  for (const line of txt.split(/\r?\n/)) {
+    const m = /^\s*(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*?)\s*$/.exec(line);
+    if (!m || line.trim().startsWith("#")) continue;
+    let v = m[2];
+    if (/^(['"]).*\1$/.test(v)) v = v.slice(1, -1);
+    else v = v.replace(/\s+#.*$/, "");
+    if (process.env[m[1]] === undefined) process.env[m[1]] = v;
+  }
+})(path.join(__dirname, "..", ".env"));
+
 const DATA = require("../js/data.js");
 const WA = require("./whatsapp.js");
 const TX = require("./textos.js");
@@ -40,7 +58,7 @@ const ADMIN_FILE = path.join(DIR, "admin.json");
 const VALIDATOR_FILE = path.join(DIR, "validator.json");
 const UPLOADS = path.join(DIR, "uploads");
 const QR_DIR = path.join(DIR, "qr-cobro");
-const PUBLIC_URL = (process.env.PUBLIC_URL || `http://localhost:${PORT}`).replace(/\/$/, "");
+const PUBLIC_URL = (process.env.PUBLIC_BASE_URL || process.env.PUBLIC_URL || `http://localhost:${PORT}`).replace(/\/$/, "");
 const HOURS_NO_CONTACT = 2; // pedido sin mensaje de WhatsApp → vence
 const HOURS_NO_PROOF = 24; // QR enviado sin comprobante → vence
 const SESSION_HOURS = 12;
@@ -96,11 +114,18 @@ const STATUS = {
   nuevo: "Esperando mensaje de WhatsApp",
   esperando_qr: "Falta enviar el QR",
   qr_enviado: "QR enviado, esperando comprobante",
-  comprobante: "Comprobante por validar",
+  comprobante: "Pendiente",
   pagado: "Pagado",
   vencido: "Vencido",
   cancelado: "Cancelado",
 };
+/* Estado visible: un pedido pagado de la obra se muestra como "Entrada enviada"
+   solo si WhatsApp aceptó el envío; si falló, queda a la vista para reenviarla */
+function labelOf(o) {
+  if (o.status !== "pagado") return STATUS[o.status];
+  if (o.product !== "obra") return "Pagado";
+  return o.ticketSent?.ok === false ? "Pagado · entrada sin enviar" : "Entrada enviada";
+}
 const ACTIVE = ["nuevo", "esperando_qr", "qr_enviado", "comprobante", "pagado"];
 
 const fechaLarga = (d, h) =>
@@ -151,7 +176,7 @@ function publicOrder(o) {
   return {
     code: o.id,
     status: o.status,
-    label: STATUS[o.status],
+    label: labelOf(o),
     amount: o.amount,
     detalle: detalle(o),
     waLink: waLink(o),
@@ -309,18 +334,33 @@ async function approve(o, by, role) {
   o.validatedBy = by;
   if (role) o.validatedRole = role;
   touch(o, "pagado", by, "Pago validado", role);
-  if (!o.phone) return;
+  await sendTicket(o, by);
+}
+
+/* Envía por WhatsApp la entrada (obra) o la confirmación (libro) y deja
+   registrado si WhatsApp la aceptó, para poder reenviarla si falló */
+async function sendTicket(o, by) {
+  if (!o.phone) {
+    o.ticketSent = { ok: false, at: now(), error: "El pedido no tiene número de WhatsApp" };
+    return save(), false;
+  }
   const vars = { first: firstName(o), code: o.id, detalle: detalle(o), amount: o.amount, ticketCode: o.ticket.code };
+  let msg;
   if (o.product === "obra") {
     const f = funcionOf(o);
     const png = qrPNG(ticketLink(o), 10);
     const mid = saveMedia(png, "image/png", "entrada");
     const caption = TX.entrada({ ...vars, titulo: PRODUCTS.obra.t, fecha: fechaLarga(f.d, f.h), lugar: `${PRODUCTS.obra.venue}, ${PRODUCTS.obra.addr}`, detalle: `${o.qty} ${PRODUCTS.obra.unit[o.qty === 1 ? 0 : 1]}`, link: ticketLink(o) });
-    await sendImage(o.phone, png, "image/png", caption, mid, { orderId: o.id });
+    msg = await sendImage(o.phone, png, "image/png", caption, mid, { orderId: o.id });
   } else {
     const d = PRODUCTS.libro.delivery.find((x) => x.id === o.delivery);
-    await sendText(o.phone, TX.libroConfirmado({ ...vars, entrega: d ? d.n : "", envio: !!d?.needsAddress }), { orderId: o.id });
+    msg = await sendText(o.phone, TX.libroConfirmado({ ...vars, entrega: d ? d.n : "", envio: !!d?.needsAddress }), { orderId: o.id });
   }
+  const ok = msg.state === "enviado";
+  o.ticketSent = { ok, at: now(), by: by || "sistema", ...(ok ? {} : { error: msg.error }) };
+  o.history.push({ at: now(), s: ok ? "entrada_enviada" : "envio_fallido", by: by || "sistema", note: ok ? (o.product === "obra" ? "Entrada enviada por WhatsApp" : "Confirmación enviada por WhatsApp") : "WhatsApp no aceptó el envío: " + msg.error });
+  save();
+  return ok;
 }
 
 async function reject(o, reason, by, role) {
@@ -455,7 +495,7 @@ const fmtTs = (t) => (t ? new Date(t - 4 * 36e5).toISOString().slice(0, 16).repl
 function adminOrder(o) {
   return {
     ...o,
-    label: STATUS[o.status],
+    label: labelOf(o),
     detalle: detalle(o),
     proofs: (o.proofs || []).map((id) => ({ id, mime: db.media[id]?.mime })),
     ticketLink: o.ticket && o.product === "obra" ? ticketLink(o) : null,
@@ -468,7 +508,7 @@ function proofView(o) {
   return {
     id: o.id,
     status: o.status,
-    label: STATUS[o.status],
+    label: labelOf(o),
     product: o.product,
     detalle: detalle(o),
     qty: o.qty,
@@ -481,6 +521,7 @@ function proofView(o) {
     proofs: (o.proofs || []).map((id) => ({ id, mime: db.media[id]?.mime })),
     dupWarning: o.dupWarning || [],
     rejections: (o.rejections || []).map((r) => ({ at: r.at, reason: r.reason })),
+    ticketSent: o.ticketSent ? { ok: o.ticketSent.ok, error: o.ticketSent.error } : undefined,
   };
 }
 const isProofOfPending = (mediaId) => allOrders().some((o) => o.status === "comprobante" && (o.proofs || []).includes(mediaId));
@@ -609,7 +650,7 @@ function chats() {
   return [...map.values()]
     .map((c) => {
       const o = ord.filter((x) => x.phone === c.phone).sort((a, b) => b.createdAt - a.createdAt)[0];
-      return { ...c, name: o?.buyer?.n || c.name, order: o ? { id: o.id, status: o.status, label: STATUS[o.status] } : null };
+      return { ...c, name: o?.buyer?.n || c.name, order: o ? { id: o.id, status: o.status, label: labelOf(o) } : null };
     })
     .sort((a, b) => b.last.at - a.last.at);
 }
@@ -623,7 +664,7 @@ const A = { admin: true }; // solo administrador
 const AV = { admin: true, roles: ["admin", "validator"] }; // administrador y validador
 
 /* ---------- públicas ---------- */
-route("GET", /^\/api\/health$/, () => [200, { ok: true, wa: WA.enabled, whatsapp: CONTACT.whatsapp }]);
+route("GET", /^\/api\/health$/, () => [200, { ok: true, wa: WA.enabled, mode: WA.mode, whatsapp: CONTACT.whatsapp }]);
 route("GET", /^\/api\/availability$/, () => [200, availability()]);
 
 route("POST", /^\/api\/orders$/, (m, b, req) => {
@@ -809,6 +850,11 @@ orderRoute("POST", "reject", async (o, b, s) => {
   await reject(o, reason, who(s), s.role);
   return [200, isValidator(s) ? proofView(o) : adminOrder(o)];
 }, AV);
+orderRoute("POST", "resend-ticket", async (o, b, s) => {
+  if (o.status !== "pagado" || !o.ticket) return [409, { error: "El pedido todavía no está pagado" }];
+  const ok = await sendTicket(o, s.name);
+  return ok ? [200, adminOrder(o)] : [502, { error: "WhatsApp no aceptó el envío: " + o.ticketSent.error }];
+});
 orderRoute("POST", "send-qr", async (o, b, s) => {
   if (!o.phone) return [409, { error: "El cliente todavía no escribió por WhatsApp" }];
   if (!qrFile(o.amount) && WA.enabled) return [409, { error: `Primero carga el QR de Bs ${o.amount} en "QR de cobro"` }];
@@ -894,7 +940,7 @@ route("GET", /^\/api\/admin\/export\/clientes\.csv$/, () => {
 route("GET", /^\/api\/admin\/export\/pedidos\.csv$/, () => {
   const list = allOrders().sort((a, b) => a.createdAt - b.createdAt);
   const out = csv(list, [
-    ["Pedido", (o) => o.id], ["Fecha", (o) => fmtTs(o.createdAt)], ["Estado", (o) => STATUS[o.status]], ["Producto", (o) => PRODUCTS[o.product].t],
+    ["Pedido", (o) => o.id], ["Fecha", (o) => fmtTs(o.createdAt)], ["Estado", (o) => labelOf(o)], ["Producto", (o) => PRODUCTS[o.product].t],
     ["Función / entrega", (o) => (funcionOf(o) ? fechaLarga(funcionOf(o).d, funcionOf(o).h) : PRODUCTS.libro.delivery.find((d) => d.id === o.delivery)?.n)],
     ["Cantidad", (o) => o.qty], ["Monto Bs", (o) => o.amount], ["Nombre", (o) => o.buyer.n], ["CI", (o) => o.buyer.ci], ["WhatsApp", (o) => o.phone],
     ["Correo", (o) => o.buyer.em], ["Dirección", (o) => o.buyer.addr], ["Origen", (o) => o.source?.src], ["Campaña", (o) => o.source?.campaign],
@@ -1023,10 +1069,32 @@ if (require.main === module) {
     console.log("│  node server/set-password.js validator       │");
     console.log("└──────────────────────────────────────────────┘\n");
   }
+  /* Configuración de WhatsApp: en modo cloud no se arranca con datos incompletos */
+  const wp = WA.configProblems();
+  if (wp.errors.length) {
+    console.error("\n✗ WHATSAPP_MODE=cloud, pero la configuración está incompleta:");
+    wp.errors.forEach((e) => console.error("  - " + e));
+    console.error("  Completa el archivo .env (ver .env.example y WHATSAPP.md) o usa WHATSAPP_MODE=simulator.\n");
+    process.exit(1);
+  }
+  wp.warnings.forEach((w) => console.warn("⚠  " + w));
+  if (WA.cfg.businessNumber && WA.cfg.businessNumber !== CONTACT.whatsapp)
+    console.warn(`⚠  WHATSAPP_BUSINESS_NUMBER (${WA.cfg.businessNumber}) no coincide con el número de la web en js/data.js (${CONTACT.whatsapp}).`);
+  if (WA.enabled && !/^https:\/\//.test(PUBLIC_URL)) console.warn("⚠  PUBLIC_BASE_URL debe ser la dirección HTTPS pública: los enlaces de las entradas no abrirán en el celular del cliente.");
+
   server.listen(PORT, () => {
     console.log(`SOTIRIA → ${PUBLIC_URL}`);
     console.log(`Panel   → ${PUBLIC_URL}/admin.html`);
-    console.log(WA.enabled ? "WhatsApp: conectado a la API de Meta" : "WhatsApp: MODO SIMULADOR (configura WA_TOKEN y WA_PHONE_ID para usar el real)");
+    if (!WA.enabled) console.log("WhatsApp: MODO SIMULADOR (WHATSAPP_MODE=simulator). Para WhatsApp real ver WHATSAPP.md");
+    else {
+      console.log(`WhatsApp: MODO CLOUD (API de Meta ${WA.cfg.version}) · webhook → ${PUBLIC_URL}/api/whatsapp/webhook`);
+      WA.checkCredentials()
+        .then((c) => {
+          console.log(`WhatsApp: credenciales válidas · número ${c.display}${c.name ? ` (${c.name})` : ""}${c.quality ? ` · calidad ${c.quality}` : ""}`);
+          if (!c.matches) console.warn(`⚠  El Phone Number ID corresponde a ${c.display}, no a WHATSAPP_BUSINESS_NUMBER (${WA.cfg.businessNumber}). ¿Sigues con el número de prueba?`);
+        })
+        .catch((e) => console.error("✗ WhatsApp: no se pudieron comprobar las credenciales: " + e.message));
+    }
     const miss = QR_AMOUNTS.filter((a) => !qrFile(a));
     if (miss.length) console.log(`Faltan ${miss.length} QR de cobro: cárgalos en el panel → "QR de cobro".`);
   });
