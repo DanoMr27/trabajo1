@@ -5,10 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>SOTIRIA | La obra, el libro y el podcast</title>
 <meta name="description" content="Compra tus entradas para la obra y el libro de SOTIRIA. Paga con QR y recibe tu entrada única por WhatsApp.">
-<meta name="theme-color" content="#0e0c15">
+<meta name="theme-color" content="#0b0b0d">
 <meta property="og:title" content="SOTIRIA | La obra, el libro y el podcast">
 <meta property="og:description" content="Entradas a Bs 50. Paga con QR y recibe tu entrada por WhatsApp.">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23ff4f6d'/%3E%3Ctext x='32' y='44' font-size='34' text-anchor='middle' fill='white' font-family='Arial' font-weight='bold'%3ES%3C/text%3E%3C/svg%3E">
+<meta property="og:image" content="img/sotiria-logo.png">
+<link rel="icon" type="image/png" href="img/sotiria-escudo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&display=swap" rel="stylesheet">
@@ -19,13 +20,12 @@
 
 <header class="top" id="top">
   <div class="wrap bar">
-    <a class="logo" href="#" aria-label="SOTIRIA, inicio"><span class="logo-mark">S</span><span>SOTIRIA<small>teatro · libro · podcast</small></span></a>
+    <a class="logo" href="#" aria-label="SOTIRIA, inicio"><span class="logo-mark"><img src="img/sotiria-escudo.png" alt="" width="438" height="438"></span><span>SOTIRIA<small>teatro · libro · podcast</small></span></a>
     <nav class="mainnav" id="nav" aria-label="Principal">
       <a href="#obra">La obra</a>
       <a href="#libro">El libro</a>
       <a href="#podcast">Podcast</a>
       <a href="#videos">Videos</a>
-      <a href="#galeria">Galería</a>
     </nav>
     <button class="btn sm ghost mytk" id="openOrders" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 8a2 2 0 0 0 2-2h14a2 2 0 0 0 2 2v2a2 2 0 0 0 0 4v2a2 2 0 0 0-2 2H5a2 2 0 0 0-2-2v-2a2 2 0 0 0 0-4z"/></svg><span>Mis pedidos</span><b class="count" id="ordCount" hidden>0</b></button>
     <button class="burger" id="burger" type="button" aria-label="Abrir menú" aria-expanded="false" aria-controls="nav"><i></i><i></i><i></i></button>
@@ -34,7 +34,7 @@
 
 <main>
   <!-- ============ HERO: LA OBRA ============ -->
-  <section class="hero" id="hero">
+  <section class="hero" id="obra">
     <div class="hero-bg" id="heroBg"></div>
     <div class="wrap hero-grid">
       <div class="hero-copy">
@@ -53,24 +53,11 @@
 
   <div class="tape-wrap" aria-hidden="true"><div class="tape"><div id="tape"></div></div></div>
 
-  <!-- ============ LA OBRA ============ -->
-  <section id="obra" class="sec">
+  <!-- ============ VIDEOS ============ -->
+  <section id="videos" class="sec videos">
     <div class="wrap">
-      <div class="sec-head funcs-head"><div><span class="kicker kicker-pill">La obra</span><h2>Elige tu función</h2><ul class="meta-chips" id="obraSub"></ul></div></div>
-      <div class="funcs" id="funcs"></div>
-    </div>
-  </section>
-
-  <!-- ============ CÓMO COMPRAR ============ -->
-  <section class="sec how">
-    <div class="wrap">
-      <h2>Así de fácil compras</h2>
-      <ol class="steps4">
-        <li><span>1</span><h3>Elige</h3><p>La función (o el libro) y cuántas entradas quieres.</p><i class="step-arrow" aria-hidden="true"></i></li>
-        <li><span>2</span><h3>Escríbenos</h3><p>Te abrimos WhatsApp con tu pedido listo. Solo toca enviar.</p><i class="step-arrow" aria-hidden="true"></i></li>
-        <li><span>3</span><h3>Paga con QR</h3><p>Te llega el QR con el monto exacto. Descárgalo y paga desde tu banco.</p><i class="step-arrow" aria-hidden="true"></i></li>
-        <li><span>4</span><h3>Recibe tu entrada</h3><p>Envía el comprobante en ese chat y te mandamos tu entrada única.</p></li>
-      </ol>
+      <div class="sec-head"><div><h2>Un vistazo antes de venir</h2><p class="sub">Adelantos, detrás de cámaras y lo que se viene.</p></div></div>
+      <div class="grid vids" id="vids"></div>
     </div>
   </section>
 
@@ -100,19 +87,16 @@
     </div>
   </section>
 
-  <!-- ============ VIDEOS ============ -->
-  <section id="videos" class="sec videos">
+  <!-- ============ CÓMO COMPRAR ============ -->
+  <section class="sec how">
     <div class="wrap">
-      <div class="sec-head"><div><h2>Un vistazo antes de venir</h2><p class="sub">Adelantos, detrás de cámaras y lo que se viene.</p></div></div>
-      <div class="grid vids" id="vids"></div>
-    </div>
-  </section>
-
-  <!-- ============ GALERÍA ============ -->
-  <section id="galeria" class="sec">
-    <div class="wrap">
-      <div class="sec-head"><div><h2>Así se vive</h2><p class="sub">Fotos de nuestras noches. La próxima puedes salir tú.</p></div></div>
-      <div class="gallery" id="gal"></div>
+      <h2>Así de fácil compras</h2>
+      <ol class="steps4">
+        <li><span>1</span><h3>Elige</h3><p>La función (o el libro) y cuántas entradas quieres.</p><i class="step-arrow" aria-hidden="true"></i></li>
+        <li><span>2</span><h3>Escríbenos</h3><p>Te abrimos WhatsApp con tu pedido listo. Solo toca enviar.</p><i class="step-arrow" aria-hidden="true"></i></li>
+        <li><span>3</span><h3>Paga con QR</h3><p>Te llega el QR con el monto exacto. Descárgalo y paga desde tu banco.</p><i class="step-arrow" aria-hidden="true"></i></li>
+        <li><span>4</span><h3>Recibe tu entrada</h3><p>Envía el comprobante en ese chat y te mandamos tu entrada única.</p></li>
+      </ol>
     </div>
   </section>
 
@@ -131,8 +115,8 @@
 
 <footer class="foot">
   <div class="wrap foot-grid">
-    <div><a class="logo" href="#"><span class="logo-mark">S</span><span>SOTIRIA<small>teatro · libro · podcast</small></span></a><p>Santa Cruz de la Sierra, Bolivia</p></div>
-    <div><b>Explora</b><a href="#obra">La obra</a><a href="#libro">El libro</a><a href="#podcast">Podcast</a></div>
+    <div><a class="logo" href="#"><span class="logo-mark"><img src="img/sotiria-escudo.png" alt="" width="438" height="438" loading="lazy"></span><span>SOTIRIA<small>teatro · libro · podcast</small></span></a><p>Santa Cruz de la Sierra, Bolivia</p></div>
+    <div><b>Explora</b><a href="#obra">La obra</a><a href="#libro">El libro</a><a href="#podcast">Podcast</a><a href="#videos">Videos</a></div>
     <div><b>Síguenos</b><a href="https://www.facebook.com/" rel="noopener" target="_blank">Facebook</a><a href="https://www.instagram.com/" rel="noopener" target="_blank">Instagram</a><a href="https://www.tiktok.com/" rel="noopener" target="_blank">TikTok</a><a id="footWa" href="#" rel="noopener" target="_blank">WhatsApp</a></div>
   </div>
   <p class="wrap legal">© <span id="yr"></span> SOTIRIA TV. <span id="modeBadge" class="mode"></span></p>

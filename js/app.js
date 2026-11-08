@@ -1,7 +1,7 @@
 /* =====================================================================
    SOTIRIA — lógica de la página
    ===================================================================== */
-const { PRODUCTS, VIDEOS, GALLERY, CONTACT } = DATA;
+const { PRODUCTS, VIDEOS, CONTACT } = DATA;
 const OBRA = PRODUCTS.obra,
   LIBRO = PRODUCTS.libro,
   POD = PRODUCTS.podcast;
@@ -92,8 +92,7 @@ async function detectServer() {
 async function loadAvailability() {
   if (!SERVER) return;
   try {
-    AVAIL = await api("/availability");
-    renderFuncs();
+    AVAIL = await api("/availability"); // la usa el modal de compra (cupos por función)
   } catch {}
 }
 
@@ -108,7 +107,7 @@ function renderHero() {
   $("#heroLead").textContent = OBRA.long;
   const next = upcoming();
   $("#heroMeta").innerHTML = `
-    <li><b>${next.length ? esc(fLong(next[0])) : "Próximamente"}</b><span>${next.length > 1 ? `y ${next.length - 1} ${next.length - 1 === 1 ? "función más" : "funciones más"}` : "Función"}</span></li>
+    <li><b>${next.length ? next.map((f) => esc(fLong(f))).join("<br>") : "Próximamente"}</b><span>${next.length > 1 ? `${next.length} funciones` : "Función"}</span></li>
     <li><b>${esc(OBRA.venue)}</b><span>${esc(OBRA.addr)}</span></li>
     <li><b>${bs(OBRA.price)}</b><span>por entrada</span></li>`;
   $("#heroBuy").textContent = `Comprar entradas · ${bs(OBRA.price)}`;
@@ -133,45 +132,8 @@ setInterval(tickCd, 30000);
 
 const svg = (d) => `<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">${d}</svg>`;
 const ICON = {
-  pin: svg('<path d="M12 21s-7-6.1-7-11.5a7 7 0 0 1 14 0C19 14.9 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/>'),
-  clock: svg('<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>'),
-  user: svg('<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>'),
-  ticket: svg('<path d="M3 8a2 2 0 0 0 2-2h14a2 2 0 0 0 2 2v2a2 2 0 0 0 0 4v2a2 2 0 0 0-2 2H5a2 2 0 0 0-2-2v-2a2 2 0 0 0 0-4z"/><path d="M14 6v12" stroke-dasharray="2 2"/>'),
-  arrow: svg('<path d="M5 12h14M13 6l6 6-6 6"/>'),
   book: svg('<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5z"/><path d="M4 19.5A2.5 2.5 0 0 0 6.5 22H20v-5"/>'),
 };
-
-function renderFuncs() {
-  $("#obraSub").innerHTML = [
-    [ICON.pin, OBRA.venue],
-    [ICON.clock, OBRA.dur],
-    [ICON.user, OBRA.age],
-    [ICON.ticket, `${bs(OBRA.price)} por entrada`, true],
-  ]
-    .map(([i, t, hl]) => `<li${hl ? ' class="hl"' : ""}>${i}<span>${esc(t)}</span></li>`)
-    .join("");
-  const list = OBRA.funciones.slice().sort((a, b) => fDate(a) - fDate(b));
-  $("#funcs").innerHTML = list
-    .map((f) => {
-      const past = fDate(f) < new Date();
-      const left = AVAIL ? AVAIL.obra[f.id] : null;
-      const off = past || left === 0;
-      const hot = left != null && left <= 30 && !off;
-      const d = fDate(f);
-      const note = past ? "Función realizada" : left === 0 ? "Agotado" : hot ? `¡Quedan ${left}!` : "Entradas disponibles";
-      return `
-      <article class="func${off ? " off" : ""}${hot ? " is-hot" : ""}">
-        <div class="func-date"><span>${esc(d.toLocaleDateString("es-BO", { month: "short" }).replace(".", ""))}</span><b>${d.getDate()}</b></div>
-        <div class="func-info">
-          <h3>${esc(cap(d.toLocaleDateString("es-BO", { weekday: "long" })))}</h3>
-          <p class="func-meta">${ICON.clock}<span>${esc(f.h)}</span><i aria-hidden="true">·</i>${ICON.pin}<span>${esc(OBRA.venue)}</span></p>
-          <p class="func-state"><i class="state-dot" aria-hidden="true"></i>${esc(note)}</p>
-        </div>
-        <button class="btn func-btn" type="button" data-buy="obra" data-f="${f.id}" ${off ? "disabled" : ""}>${off ? (past ? "Finalizada" : "Agotado") : `Comprar${ICON.arrow}`}</button>
-      </article>`;
-    })
-    .join("");
-}
 
 function renderBook() {
   const b = LIBRO;
@@ -204,10 +166,6 @@ function renderVideos() {
       <span class="vid-txt"><small>${esc(v.tag)}</small>${esc(v.t)}</span>
     </button>`,
   ).join("");
-}
-
-function renderGallery() {
-  $("#gal").innerHTML = GALLERY.map((p, i) => `<figure class="g-item gi${i + 1}">${img(p.src, p.alt)}<figcaption><small>${esc(p.tag)}</small>${esc(p.title)}</figcaption></figure>`).join("");
 }
 
 /* ---------------- menú móvil ---------------- */
@@ -648,11 +606,9 @@ function burst() {
 $("#yr").textContent = new Date().getFullYear();
 $("#footWa").href = `https://wa.me/${CONTACT.whatsapp}`;
 renderHero();
-renderFuncs();
 renderBook();
 renderSoon();
 renderVideos();
-renderGallery();
 updateCount();
 detectServer().then(async (ok) => {
   SERVER = ok;

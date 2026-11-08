@@ -15,12 +15,16 @@
     obra: {
       id: "obra",
       type: "show",
-      t: "El Último Telón",
+      /* Título, frase y sinopsis: del díptico oficial de Sotiria Teatro
+         (comedia musical, texto y dirección de David Arce) */
+      t: "La Última Jugada",
       tag: "La obra",
-      s: "Un drama íntimo sobre un teatro que está por cerrar sus puertas.",
+      s: "Una partida. Una noche. Una vida en juego.",
       long:
-        "La última noche de un viejo teatro de barrio reúne a sus actores, técnicos y fantasmas. " +
-        "Un drama íntimo, con humor, sobre lo que significa dejar ir.",
+        "Armando lo tiene todo: a los 30 años está a punto de cerrar el negocio más grande de su vida. " +
+        "Pero en plena firma llega la Muerte, que viene a buscarlo esta misma noche. " +
+        "Armando propone un último trato: una partida de ajedrez. Si gana, vive. " +
+        "Con humor, canciones y mucha humanidad, una comedia musical sobre lo que realmente importa cuando se acaba el tiempo.",
       venue: "Teatro SOTIRIA",
       addr: "Av. Ejemplo 123, Santa Cruz de la Sierra",
       dur: "1 h 50 min",
@@ -33,8 +37,8 @@
         { id: "f1", d: "2026-11-28", h: "20:30", cap: 300 },
         { id: "f2", d: "2026-11-29", h: "20:30", cap: 300 },
       ],
-      img: IMG("1507676184212-d03ab07a01bf"),
-      c: ["#ff4f6d", "#8b6cff"],
+      img: "img/obra-la-ultima-jugada.jpg", // foto de portada del díptico (tablero de ajedrez)
+      c: ["#be1d25", "#0b0b0d"],
     },
 
     /* ---------- EL LIBRO ---------- */
@@ -58,7 +62,7 @@
       ],
       cap: 500,
       img: "img/libro-la-ultima-jugada.jpg",
-      c: ["#ffb547", "#ff4f6d"],
+      c: ["#be1d25", "#2a2a30"],
     },
 
     /* ---------- EL PODCAST (próximamente) ---------- */
@@ -70,7 +74,7 @@
       s: "Historias, invitados y conversaciones sin filtro. Muy pronto.",
       long: "Estamos preparando algo nuevo. Déjanos tu WhatsApp y te avisamos el día del estreno.",
       img: IMG("1590602847861-f357a9332bbc"),
-      c: ["#3dd6c6", "#8b6cff"],
+      c: ["#3a3a42", "#be1d25"],
     },
   };
 
@@ -82,14 +86,6 @@
     { t: "Detrás de cámaras", tag: "Detrás de cámaras", src: SAMPLE, poster: IMG("1516280440614-37939bbacd81", 900), product: "obra" },
     { t: "Presentación del libro", tag: "El libro", src: SAMPLE, poster: "img/libro-la-ultima-jugada.jpg", product: "libro" },
     { t: "Primer vistazo al podcast", tag: "Próximamente", src: SAMPLE, poster: IMG("1590602847861-f357a9332bbc", 900) },
-  ];
-
-  const GALLERY = [
-    { src: IMG("1501386761578-eac5c94b800a"), alt: "Público disfrutando de la función", tag: "En vivo", title: "La emoción de estar ahí" },
-    { src: IMG("1507676184212-d03ab07a01bf", 900), alt: "Actores en escena", tag: "En escena", title: "Cada función, una historia" },
-    { src: IMG("1503095396549-807759245b35", 900), alt: "Escenario iluminado", tag: "El espectáculo", title: "Momentos que brillan" },
-    { src: IMG("1516280440614-37939bbacd81", 900), alt: "Artista frente al público", tag: "Talento", title: "El arte de emocionar" },
-    { src: IMG("1524368535928-5b5e00ddc76b", 900), alt: "Público en el teatro", tag: "Momentos únicos", title: "Noches para recordar" },
   ];
 
   /* ⚠ Número de WhatsApp de ventas: código de país + número, sin "+" ni espacios */
@@ -104,7 +100,7 @@
     ),
   ].sort((a, b) => a - b);
 
-  const DATA = { PRODUCTS, VIDEOS, GALLERY, CONTACT, QR_AMOUNTS };
+  const DATA = { PRODUCTS, VIDEOS, CONTACT, QR_AMOUNTS };
   if (typeof module !== "undefined" && module.exports) module.exports = DATA;
   else root.DATA = DATA;
 })(this);
