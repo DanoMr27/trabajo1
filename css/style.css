@@ -193,6 +193,8 @@ h2 { font-size: clamp(1.8rem, 4vw, 2.6rem); }
 .play { position: absolute; z-index: 1; top: 50%; left: 50%; translate: -50% -50%; width: 64px; height: 64px; border-radius: 50%; background: rgba(255, 255, 255, 0.95); display: grid; place-items: center; box-shadow: 0 0 0 10px rgba(255, 255, 255, 0.18); transition: transform 0.2s; }
 .play svg { width: 26px; fill: #111; margin-left: 4px; }
 .vid:hover .play { transform: scale(1.1); }
+.vid.soon-vid { cursor: default; }
+.vid.soon-vid:hover img { transform: none; }
 .vid-txt { position: absolute; z-index: 1; left: 16px; right: 16px; bottom: 14px; font-weight: 700; font-size: 1.05rem; line-height: 1.25; }
 .vid-txt small { display: block; color: var(--accent-ink); font-size: 0.72rem; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 4px; }
 
@@ -324,8 +326,9 @@ input.err, textarea.err { border-color: var(--bad); }
 
 /* video */
 .video-modal { width: min(980px, 100%); background: #000; }
-.player { aspect-ratio: 16/9; background: #000; }
+.player { aspect-ratio: 16/9; background: #000; max-height: 72dvh; margin: 0 auto; }
 .player iframe, .player video { width: 100%; height: 100%; border: 0; }
+.player video { object-fit: contain; background: #000; }
 .v-err { height: 100%; display: grid; place-content: center; gap: 14px; text-align: center; color: var(--muted); }
 .vbar { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 16px 20px; background: var(--surface); flex-wrap: wrap; }
 .vbar small { color: var(--accent-ink); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.1em; font-weight: 700; }

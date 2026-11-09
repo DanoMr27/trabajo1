@@ -47,11 +47,11 @@
       type: "book",
       t: "La última jugada",
       tag: "El libro",
-      author: "Simón Arce",
+      author: "David Arce",
       s: "Las historias detrás del escenario, ahora en papel.",
       long:
-        "Escribe aquí la presentación del libro: de qué trata, por qué leerlo y qué lo hace especial. " +
-        "Puedes incluir el número de páginas, el formato y si viene firmado.",
+        "¿Qué harías si, justo en la gloria de tu éxito, la Muerte se sentara a jugar su última partida contigo a cambio de un segundo más de vida?." +
+        "Descúbrelo en La Última Jugada, un thriller existencial lleno de humor, música y secretos donde cada pieza del tablero puede ser tu última oportunidad de redimirte.",
       price: 100, // Bs por libro
       maxQty: 5,
       unit: ["libro", "libros"],
@@ -78,14 +78,29 @@
     },
   };
 
-  /* Videos: enlace de YouTube (watch, youtu.be o shorts) o archivo .mp4.
-     ⚠ Clip de MUESTRA: reemplázalo por los enlaces reales. */
-  const SAMPLE = "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4";
+  /* Videos: archivo local en videos/ o enlace de YouTube (watch, youtu.be o shorts).
+     Sin "src", la tarjeta se muestra con su imagen y sin botón de reproducir. */
   const VIDEOS = [
-    { t: "Adelanto: El Último Telón", tag: "Adelanto", src: SAMPLE, poster: IMG("1507676184212-d03ab07a01bf", 900), product: "obra" },
-    { t: "Detrás de cámaras", tag: "Detrás de cámaras", src: SAMPLE, poster: IMG("1516280440614-37939bbacd81", 900), product: "obra" },
-    { t: "Presentación del libro", tag: "El libro", src: SAMPLE, poster: "img/libro-la-ultima-jugada.jpg", product: "libro" },
-    { t: "Primer vistazo al podcast", tag: "Próximamente", src: SAMPLE, poster: IMG("1590602847861-f357a9332bbc", 900) },
+    {
+      t: "Adelanto: La última jugada",
+      tag: "Adelanto",
+      src: "videos/LaObra.mp4",
+      poster: "img/obra-la-ultima-jugada.jpg",
+      product: "obra",
+    },
+    {
+      t: "Presentación de La última jugada",
+      tag: "El libro",
+      src: "videos/la_ultima_jugada_loop_4s.mp4",
+      poster: "img/libro-la-ultima-jugada.jpg",
+      product: "libro",
+    },
+    {
+      t: "Primer vistazo al podcast",
+      tag: "Próximamente",
+      src: "", // ⚠ falta el video del micrófono: agregar "videos/NOMBRE.mp4"
+      poster: IMG("1590602847861-f357a9332bbc", 900),
+    },
   ];
 
   /* ⚠ Número de WhatsApp de ventas: código de país + número, sin "+" ni espacios */

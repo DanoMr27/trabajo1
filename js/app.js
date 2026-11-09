@@ -158,14 +158,18 @@ function renderSoon() {
 }
 
 function renderVideos() {
-  $("#vids").innerHTML = VIDEOS.map(
-    (v, i) => `
-    <button class="vid" type="button" data-vid="${i}" style="--g:${grad((PRODUCTS[v.product] || POD).c)}">
+  $("#vids").innerHTML = VIDEOS.map((v, i) => {
+    const style = `style="--g:${grad((PRODUCTS[v.product] || POD).c)}"`;
+    const txt = `<span class="vid-txt"><small>${esc(v.tag)}</small>${esc(v.t)}</span>`;
+    /* sin video todavía: solo la imagen, sin reproducir */
+    if (!v.src) return `<div class="vid soon-vid" ${style}>${img(v.poster, "")}${txt}</div>`;
+    return `
+    <button class="vid" type="button" data-vid="${i}" ${style}>
       ${img(v.poster, "")}
       <span class="play" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span>
-      <span class="vid-txt"><small>${esc(v.tag)}</small>${esc(v.t)}</span>
-    </button>`,
-  ).join("");
+      ${txt}
+    </button>`;
+  }).join("");
 }
 
 /* ---------------- menú móvil ---------------- */
@@ -577,8 +581,11 @@ function openVideo(i, opener) {
   const yt = youtubeId(v.src);
   $("#player").innerHTML = yt
     ? `<iframe src="https://www.youtube-nocookie.com/embed/${yt}?autoplay=1&rel=0" title="${esc(v.t)}" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>`
-    : `<video src="${esc(v.src)}" poster="${esc(v.poster)}" controls autoplay playsinline></video>`;
+    : `<video src="${esc(v.src)}" poster="${esc(v.poster)}" controls autoplay playsinline preload="metadata"></video>`;
   const vid = $("#player video");
+  /* el reproductor toma la forma del video (horizontal o vertical) */
+  $("#player").style.aspectRatio = "";
+  if (vid) vid.onloadedmetadata = () => vid.videoWidth && ($("#player").style.aspectRatio = `${vid.videoWidth} / ${vid.videoHeight}`);
   if (vid) vid.onerror = () => ($("#player").innerHTML = `<div class="v-err"><p>No pudimos cargar este video.</p><a class="btn ghost sm" href="${esc(v.src)}" target="_blank" rel="noopener">Abrir en otra pestaña</a></div>`);
   const p = PRODUCTS[v.product];
   const canBuy = p && p.price && (p.id !== "obra" || upcoming().length);
@@ -586,6 +593,13 @@ function openVideo(i, opener) {
   if (canBuy) $("#vbuy").onclick = () => (closeLayer($("#vo")), openCheckout(p.id));
   openLayer($("#vo"), opener, () => ($("#player").innerHTML = ""));
 }
+
+/* al reproducir un video, se pausan los demás de la página */
+document.addEventListener(
+  "play",
+  (ev) => $$("video").forEach((v) => v !== ev.target && !v.paused && v.pause()),
+  true,
+);
 
 /* ---------------- confeti ---------------- */
 function burst() {

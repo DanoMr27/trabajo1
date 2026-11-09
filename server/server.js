@@ -1040,10 +1040,25 @@ const server = http.createServer(async (req, res) => {
   if (p.endsWith("/")) p += "index.html";
   const file = path.normalize(path.join(ROOT, p));
   if (!file.startsWith(ROOT + path.sep) || PRIVATE.test(p.replace(/\\/g, "/"))) return send(res, 404, "No encontrado");
-  fs.readFile(file, (err, buf) => {
-    if (err) return send(res, 404, "No encontrado");
-    res.writeHead(200, { "Content-Type": TYPES[path.extname(file).toLowerCase()] || "application/octet-stream", "X-Content-Type-Options": "nosniff" });
-    res.end(buf);
+  fs.stat(file, (err, info) => {
+    if (err || !info.isFile()) return send(res, 404, "No encontrado");
+    const head = { "Content-Type": TYPES[path.extname(file).toLowerCase()] || "application/octet-stream", "X-Content-Type-Options": "nosniff", "Accept-Ranges": "bytes" };
+    /* entrega por partes (Range): necesaria para reproducir videos en iPhone y para no cargar archivos grandes en memoria */
+    const m = /^bytes=(\d*)-(\d*)$/.exec(req.headers.range || "");
+    if (m && (m[1] || m[2])) {
+      const size = info.size;
+      let start = m[1] ? +m[1] : size - +m[2];
+      let end = m[1] && m[2] ? Math.min(+m[2], size - 1) : size - 1;
+      if (start < 0) start = 0;
+      if (start > end || start >= size) {
+        res.writeHead(416, { ...head, "Content-Range": `bytes */${size}` });
+        return res.end();
+      }
+      res.writeHead(206, { ...head, "Content-Range": `bytes ${start}-${end}/${size}`, "Content-Length": end - start + 1 });
+      return req.method === "HEAD" ? res.end() : fs.createReadStream(file, { start, end }).pipe(res);
+    }
+    res.writeHead(200, { ...head, "Content-Length": info.size });
+    req.method === "HEAD" ? res.end() : fs.createReadStream(file).pipe(res);
   });
 });
 
