@@ -1,0 +1,17 @@
+# Configuración para publicar en Render (https://render.com) con el plan gratuito.
+# Al conectar el repositorio, Render lee este archivo y arma el servicio solo.
+services:
+  - type: web
+    name: sotiria
+    runtime: node
+    plan: free
+    buildCommand: ""
+    startCommand: node server/server.js
+    envVars:
+      # Render pide esta contraseña al crear el servicio: es la del panel.
+      - key: ADMIN_PASSWORD
+        sync: false
+      # Después de publicar, pon aquí la dirección que te dé Render,
+      # por ejemplo https://sotiria.onrender.com
+      - key: PUBLIC_URL
+        sync: false

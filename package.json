@@ -1,0 +1,12 @@
+{
+  "name": "sotiria",
+  "version": "1.0.0",
+  "description": "SOTIRIA: venta de entradas de la obra y del libro, con pago QR por WhatsApp y panel de validación",
+  "private": true,
+  "scripts": {
+    "start": "node server/server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
