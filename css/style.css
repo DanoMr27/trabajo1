@@ -183,20 +183,368 @@ h2 { font-size: clamp(1.8rem, 4vw, 2.6rem); }
 .eq i:nth-child(3n) { animation-duration: 1.4s; }
 @keyframes eq { from { height: 10%; } to { height: 100%; } }
 
-/* videos */
-.videos { background: var(--bg-2); border-block: 1px solid var(--line); }
-.vids { grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); }
-.vid { position: relative; aspect-ratio: 16/10; border: 0; padding: 0; border-radius: var(--r); overflow: hidden; cursor: pointer; background: var(--g); text-align: left; }
-.vid img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transition: transform 0.4s; }
-.vid::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, transparent 30%, rgba(0, 0, 0, 0.85)); }
-.vid:hover img { transform: scale(1.06); }
-.play { position: absolute; z-index: 1; top: 50%; left: 50%; translate: -50% -50%; width: 64px; height: 64px; border-radius: 50%; background: rgba(255, 255, 255, 0.95); display: grid; place-items: center; box-shadow: 0 0 0 10px rgba(255, 255, 255, 0.18); transition: transform 0.2s; }
-.play svg { width: 26px; fill: #111; margin-left: 4px; }
-.vid:hover .play { transform: scale(1.1); }
-.vid.soon-vid { cursor: default; }
-.vid.soon-vid:hover img { transform: none; }
-.vid-txt { position: absolute; z-index: 1; left: 16px; right: 16px; bottom: 14px; font-weight: 700; font-size: 1.05rem; line-height: 1.25; }
-.vid-txt small { display: block; color: var(--accent-ink); font-size: 0.72rem; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 4px; }
+/* ---------------- VIDEOS ---------------- */
+
+/* =========================================
+   VIDEOS - UN VISTAZO ANTES DE VENIR
+========================================= */
+
+.videos {
+  background: var(--bg-2);
+  border-block: 1px solid var(--line);
+}
+
+/* Encabezado centrado */
+.videos .sec-head {
+  justify-content: center;
+  text-align: center;
+}
+
+.videos .sec-head>div {
+  width: 100%;
+}
+
+/* Cuadrícula: tres tarjetas iguales y centradas */
+.vids {
+  display: grid;
+  width: 100%;
+  max-width: 1080px;
+  margin: 0 auto;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 24px;
+  justify-content: center;
+  align-items: stretch;
+}
+
+/* Diseño común de las tres tarjetas */
+.vid {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 16 / 10;
+  min-width: 0;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  border-radius: var(--r);
+  overflow: hidden;
+  isolation: isolate;
+  cursor: pointer;
+  background: var(--g, #171719);
+  color: #fff;
+  text-align: left;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.20);
+  transition:
+    transform 0.25s ease,
+    border-color 0.25s ease,
+    box-shadow 0.25s ease;
+}
+
+.vid:hover {
+  transform: translateY(-4px);
+  border-color: rgba(255, 255, 255, 0.25);
+  box-shadow: 0 18px 38px rgba(0, 0, 0, 0.32);
+}
+
+/* Imagen de fondo */
+.vid img {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center center;
+  transition: transform 0.45s ease;
+}
+
+.vid:hover img {
+  transform: scale(1.045);
+}
+
+/* Degradado para mejorar la lectura del texto */
+.vid::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: linear-gradient(180deg,
+      rgba(5, 5, 8, 0.18) 0%,
+      rgba(5, 5, 8, 0.02) 38%,
+      rgba(5, 5, 8, 0.88) 100%);
+  pointer-events: none;
+}
+
+/* Etiquetas VIDEO y LIBRO */
+.vid-badge,
+.podcast-label {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 13px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 999px;
+  background: rgba(12, 12, 16, 0.58);
+  color: #fff;
+  font-size: 0.70rem;
+  font-weight: 800;
+  letter-spacing: 0.13em;
+  line-height: 1;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
+}
+
+/* Botón de reproducción estilo glass */
+.play {
+  position: absolute;
+  z-index: 3;
+  top: 50%;
+  left: 50%;
+  translate: -50% -50%;
+  display: grid;
+  place-items: center;
+  width: 68px;
+  height: 68px;
+  border: 1px solid rgba(255, 255, 255, 0.62);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.19);
+  color: #fff;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow:
+    0 8px 28px rgba(0, 0, 0, 0.25),
+    inset 0 1px 1px rgba(255, 255, 255, 0.30);
+  transition:
+    transform 0.25s ease,
+    background 0.25s ease,
+    box-shadow 0.25s ease;
+}
+
+.play svg {
+  display: block;
+  width: 25px;
+  height: 25px;
+  fill: currentColor;
+  margin-left: 4px;
+}
+
+.vid:hover .play {
+  transform: scale(1.09);
+  background: rgba(255, 255, 255, 0.30);
+  box-shadow:
+    0 10px 32px rgba(0, 0, 0, 0.32),
+    inset 0 1px 1px rgba(255, 255, 255, 0.40);
+}
+
+/* Texto inferior */
+.vid-txt {
+  position: absolute;
+  z-index: 3;
+  left: 18px;
+  right: 18px;
+  bottom: 17px;
+  color: #fff;
+  font-size: 1.04rem;
+  font-weight: 750;
+  line-height: 1.3;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.45);
+}
+
+.vid-txt small {
+  display: block;
+  margin-bottom: 5px;
+  color: var(--accent-ink);
+  font-size: 0.70rem;
+  font-weight: 800;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+}
+
+/* =========================================
+   TARJETA DEL LIBRO
+   Mantiene las mismas dimensiones que las demás
+========================================= */
+
+.vid-book {
+  aspect-ratio: 16 / 10;
+  background: #171719;
+}
+
+.vid-book img {
+  object-fit: contain;
+  object-position: center center;
+  padding: 8px;
+  background: #171719;
+}
+
+.vid-book::after {
+  background: linear-gradient(180deg,
+      rgba(5, 5, 8, 0.10) 0%,
+      rgba(5, 5, 8, 0.00) 42%,
+      rgba(5, 5, 8, 0.90) 100%);
+}
+
+/* =========================================
+   TARJETA DEL PODCAST
+========================================= */
+
+.vid-podcast {
+  cursor: default;
+  background:
+    radial-gradient(circle at 50% 42%,
+      #393541 0%,
+      #211f27 48%,
+      #0d0d10 100%);
+}
+
+.vid-podcast:hover {
+  transform: translateY(-4px);
+}
+
+.vid-podcast img {
+  opacity: 0.10;
+  filter: grayscale(1);
+}
+
+.vid-podcast::after {
+  background: linear-gradient(180deg,
+      rgba(8, 8, 11, 0.08) 0%,
+      rgba(8, 8, 11, 0.20) 42%,
+      rgba(8, 8, 11, 0.94) 100%);
+}
+
+/* Etiqueta PODCAST */
+.podcast-label {
+  color: #fff;
+  background: rgba(232, 183, 107, 0.13);
+  border-color: rgba(232, 183, 107, 0.40);
+}
+
+/* Micrófono central */
+.podcast-mic {
+  position: absolute;
+  z-index: 2;
+  top: 43%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: grid;
+  place-items: center;
+  width: 100px;
+  height: 100px;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.075);
+  color: #f4d6a5;
+  box-shadow:
+    0 0 0 12px rgba(255, 255, 255, 0.035),
+    0 12px 40px rgba(0, 0, 0, 0.35),
+    inset 0 1px 1px rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.podcast-mic svg {
+  width: 46px;
+  height: 46px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.vid-podcast .vid-txt small {
+  color: #e8b76b;
+}
+
+/* =========================================
+   TARJETAS PRÓXIMAMENTE
+========================================= */
+
+.vid.soon-vid {
+  cursor: default;
+}
+
+.vid.soon-vid:hover img {
+  transform: none;
+}
+
+.vid-coming {
+  position: absolute;
+  z-index: 3;
+  top: 14px;
+  left: 14px;
+  padding: 9px 13px;
+  border: 1px solid rgba(255, 255, 255, 0.20);
+  border-radius: 999px;
+  background: rgba(12, 12, 16, 0.62);
+  color: #fff;
+  font-size: 0.70rem;
+  font-weight: 800;
+  letter-spacing: 0.10em;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+/* Accesibilidad: foco visible con teclado */
+.vid:focus-visible {
+  outline: 3px solid var(--accent-ink);
+  outline-offset: 4px;
+}
+
+/* =========================================
+   RESPONSIVE
+========================================= */
+
+/* Tablets: dos columnas */
+@media (max-width: 850px) {
+  .vids {
+    max-width: 720px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 20px;
+  }
+}
+
+/* Celulares: una columna */
+@media (max-width: 560px) {
+  .vids {
+    max-width: 400px;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 18px;
+  }
+
+  .vid {
+    aspect-ratio: 16 / 10;
+  }
+
+  .play {
+    width: 62px;
+    height: 62px;
+  }
+
+  .podcast-mic {
+    width: 88px;
+    height: 88px;
+  }
+
+  .podcast-mic svg {
+    width: 42px;
+    height: 42px;
+  }
+
+  .vid-txt {
+    left: 15px;
+    right: 15px;
+    bottom: 14px;
+    font-size: 0.98rem;
+  }
+}
 
 
 /* faq */

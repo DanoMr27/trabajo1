@@ -7,22 +7,47 @@ const OBRA = PRODUCTS.obra,
   POD = PRODUCTS.podcast;
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
-const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+const esc = (s) =>
+  String(s ?? "").replace(
+    /[&<>"']/g,
+    (c) =>
+      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[
+        c
+      ],
+  );
 const bs = (n) => "Bs " + Number(n).toLocaleString("es-BO");
 const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
 const fDate = (f) => new Date(`${f.d}T${f.h}`);
-const fLong = (f) => cap(fDate(f).toLocaleDateString("es-BO", { weekday: "long", day: "numeric", month: "long" })) + " · " + f.h;
+const fLong = (f) =>
+  cap(
+    fDate(f).toLocaleDateString("es-BO", {
+      weekday: "long",
+      day: "numeric",
+      month: "long",
+    }),
+  ) +
+  " · " +
+  f.h;
 const grad = (c) => `linear-gradient(135deg, ${c[0]}, ${c[1]})`;
-const img = (src, alt, cls = "") => `<img class="${cls}" src="${esc(src)}" alt="${esc(alt)}" loading="lazy" onerror="this.remove()">`;
+const img = (src, alt, cls = "") =>
+  `<img class="${cls}" src="${esc(src)}" alt="${esc(alt)}" loading="lazy" onerror="this.remove()">`;
 const unit = (p, n) => p.unit[n === 1 ? 0 : 1];
 const waNumber = "+" + CONTACT.whatsapp;
-const upcoming = () => OBRA.funciones.filter((f) => fDate(f) > new Date()).sort((a, b) => fDate(a) - fDate(b));
+const upcoming = () =>
+  OBRA.funciones
+    .filter((f) => fDate(f) > new Date())
+    .sort((a, b) => fDate(a) - fDate(b));
 
 function qrSVG(text, label) {
   const q = qrcode(0, "M");
   q.addData(text);
   q.make();
-  return q.createSvgTag({ cellSize: 4, margin: 2, scalable: true, alt: label || "Código QR" });
+  return q.createSvgTag({
+    cellSize: 4,
+    margin: 2,
+    scalable: true,
+    alt: label || "Código QR",
+  });
 }
 
 /* ---------------- almacenamiento local ---------------- */
@@ -44,10 +69,15 @@ const store = {
    guardaban "st_orders" con otro formato (un objeto), y eso rompía la compra. */
 const myOrders = () => {
   const v = store.get("st_orders", []);
-  return Array.isArray(v) ? v.filter((o) => o && typeof o === "object" && o.code) : [];
+  return Array.isArray(v)
+    ? v.filter((o) => o && typeof o === "object" && o.code)
+    : [];
 };
 function saveOrder(o) {
-  store.set("st_orders", [o, ...myOrders().filter((x) => x.code !== o.code)].slice(0, 30));
+  store.set(
+    "st_orders",
+    [o, ...myOrders().filter((x) => x.code !== o.code)].slice(0, 30),
+  );
   updateCount();
 }
 function updateCount() {
@@ -63,7 +93,14 @@ const SOURCE = (() => {
   const campaign = params.get("utm_campaign") || params.get("c") || "";
   if (src) sessionStorage.setItem("st_src", JSON.stringify({ src, campaign }));
   try {
-    return JSON.parse(sessionStorage.getItem("st_src")) || { src: document.referrer ? new URL(document.referrer).hostname : "directo", campaign: "" };
+    return (
+      JSON.parse(sessionStorage.getItem("st_src")) || {
+        src: document.referrer
+          ? new URL(document.referrer).hostname
+          : "directo",
+        campaign: "",
+      }
+    );
   } catch {
     return { src: "directo", campaign: "" };
   }
@@ -73,9 +110,14 @@ const SOURCE = (() => {
 let SERVER = false;
 let AVAIL = null;
 async function api(path, opts = {}) {
-  const r = await fetch("/api" + path, { headers: { "Content-Type": "application/json" }, ...opts, body: opts.body ? JSON.stringify(opts.body) : undefined });
+  const r = await fetch("/api" + path, {
+    headers: { "Content-Type": "application/json" },
+    ...opts,
+    body: opts.body ? JSON.stringify(opts.body) : undefined,
+  });
   const j = await r.json().catch(() => ({}));
-  if (!r.ok) throw new Error(j.error || "No pudimos conectar. Intenta de nuevo.");
+  if (!r.ok)
+    throw new Error(j.error || "No pudimos conectar. Intenta de nuevo.");
   return j;
 }
 async function detectServer() {
@@ -113,7 +155,18 @@ function renderHero() {
   $("#heroBuy").textContent = `Comprar entradas · ${bs(OBRA.price)}`;
   if (!next.length) $("#heroBuy").disabled = true;
   $("#tape").innerHTML = Array(2)
-    .fill(["✺ Entradas a " + bs(OBRA.price), "✺ Pago con QR", "✺ Tu entrada llega por WhatsApp", "✺ " + OBRA.t, "✺ El libro ya está a la venta", "✺ Podcast: muy pronto"].map((t) => `<span>${esc(t)}</span>`).join(""))
+    .fill(
+      [
+        "✺ Entradas a " + bs(OBRA.price),
+        "✺ Pago con QR",
+        "✺ Tu entrada llega por WhatsApp",
+        "✺ " + OBRA.t,
+        "✺ El libro ya está a la venta",
+        "✺ Podcast: muy pronto",
+      ]
+        .map((t) => `<span>${esc(t)}</span>`)
+        .join(""),
+    )
     .map((h) => `<div>${h}${h}</div>`)
     .join("");
   tickCd();
@@ -130,9 +183,12 @@ function tickCd() {
 }
 setInterval(tickCd, 30000);
 
-const svg = (d) => `<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">${d}</svg>`;
+const svg = (d) =>
+  `<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">${d}</svg>`;
 const ICON = {
-  book: svg('<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5z"/><path d="M4 19.5A2.5 2.5 0 0 0 6.5 22H20v-5"/>'),
+  book: svg(
+    '<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5z"/><path d="M4 19.5A2.5 2.5 0 0 0 6.5 22H20v-5"/>',
+  ),
 };
 
 function renderBook() {
@@ -154,21 +210,79 @@ function renderSoon() {
   $("#soonBox").style.setProperty("--g", grad(POD.c));
   $("#soonTitle").textContent = POD.t;
   $("#soonText").textContent = POD.long;
-  $("#soonArt").innerHTML = img(POD.img, "") + `<div class="eq" aria-hidden="true">${"<i></i>".repeat(14)}</div>`;
+  $("#soonArt").innerHTML =
+    img(POD.img, "") +
+    `<div class="eq" aria-hidden="true">${"<i></i>".repeat(14)}</div>`;
 }
 
 function renderVideos() {
   $("#vids").innerHTML = VIDEOS.map((v, i) => {
     const style = `style="--g:${grad((PRODUCTS[v.product] || POD).c)}"`;
-    const txt = `<span class="vid-txt"><small>${esc(v.tag)}</small>${esc(v.t)}</span>`;
-    /* sin video todavía: solo la imagen, sin reproducir */
-    if (!v.src) return `<div class="vid soon-vid" ${style}>${img(v.poster, "")}${txt}</div>`;
+
+    const txt = `
+      <span class="vid-txt">
+        <small>${esc(v.tag)}</small>
+        ${esc(v.t)}
+      </span>
+    `;
+
+    // TARJETA DEL PODCAST
+    if (!v.src) {
+      return `
+        <div class="vid soon-vid vid-podcast" ${style}>
+          ${img(v.poster, "")}
+
+          <span class="podcast-label">PODCAST</span>
+
+          <span class="podcast-mic" aria-hidden="true">
+            <svg viewBox="0 0 48 48">
+              <rect x="18" y="5" width="12" height="25" rx="6"></rect>
+              <path d="M12 22v2a12 12 0 0 0 24 0v-2"></path>
+              <path d="M24 36v7"></path>
+              <path d="M17 43h14"></path>
+            </svg>
+          </span>
+
+          ${txt}
+        </div>
+      `;
+    }
+
+    // TARJETA DEL LIBRO
+    if (v.product === "libro") {
+      return `
+        <button class="vid vid-book" type="button" data-vid="${i}" ${style}>
+          ${img(v.poster, "")}
+
+          <span class="vid-badge">LIBRO</span>
+
+          <span class="play" aria-hidden="true">
+            <svg viewBox="0 0 24 24">
+              <path d="M8 5v14l11-7z"></path>
+            </svg>
+          </span>
+
+          ${txt}
+        </button>
+      `;
+    }
+
+    // TARJETA DEL VIDEO DE LA OBRA
     return `
-    <button class="vid" type="button" data-vid="${i}" ${style}>
-      ${img(v.poster, "")}
-      <span class="play" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span>
-      ${txt}
-    </button>`;
+      <button class="vid" type="button" data-vid="${i}" ${style}>
+        ${img(v.poster, "")}
+
+        <span class="vid-badge">VIDEO</span>
+
+        <span class="play" aria-hidden="true">
+          <svg viewBox="0 0 24 24">
+            <path d="M8 5v14l11-7z"></path>
+          </svg>
+        </span>
+
+        ${txt}
+      </button>
+    `;
   }).join("");
 }
 
@@ -183,7 +297,11 @@ $("#nav").addEventListener("click", (ev) => {
     $("#burger").setAttribute("aria-expanded", "false");
   }
 });
-window.addEventListener("scroll", () => $("#top").classList.toggle("scrolled", scrollY > 10), { passive: true });
+window.addEventListener(
+  "scroll",
+  () => $("#top").classList.toggle("scrolled", scrollY > 10),
+  { passive: true },
+);
 
 document.addEventListener("click", (ev) => {
   const b = ev.target.closest("[data-buy]");
@@ -223,10 +341,15 @@ document.addEventListener("keydown", (ev) => {
   const top = layers[layers.length - 1].el;
   if (ev.key === "Escape") return closeLayer(top);
   if (ev.key === "Tab") {
-    const f = $$('button, [href], input, select, textarea, video, iframe, [tabindex]:not([tabindex="-1"])', top).filter((x) => !x.disabled && x.offsetParent);
+    const f = $$(
+      'button, [href], input, select, textarea, video, iframe, [tabindex]:not([tabindex="-1"])',
+      top,
+    ).filter((x) => !x.disabled && x.offsetParent);
     if (!f.length) return;
-    if (ev.shiftKey && document.activeElement === f[0]) (ev.preventDefault(), f[f.length - 1].focus());
-    else if (!ev.shiftKey && document.activeElement === f[f.length - 1]) (ev.preventDefault(), f[0].focus());
+    if (ev.shiftKey && document.activeElement === f[0])
+      (ev.preventDefault(), f[f.length - 1].focus());
+    else if (!ev.shiftKey && document.activeElement === f[f.length - 1])
+      (ev.preventDefault(), f[0].focus());
   }
 });
 ["ov", "vo", "tk"].forEach((id) => {
@@ -253,9 +376,17 @@ function openCheckout(pid, opener, funcion) {
     p,
     step: 0,
     qty: 1,
-    funcion: funcion || (fs.find((f) => !AVAIL || AVAIL.obra[f.id] > 0) || {}).id || null,
+    funcion:
+      funcion ||
+      (fs.find((f) => !AVAIL || AVAIL.obra[f.id] > 0) || {}).id ||
+      null,
     delivery: p.delivery ? p.delivery[0].id : null,
-    buyer: { n: saved.n || "", ci: saved.ci || "", em: saved.em || "", addr: "" },
+    buyer: {
+      n: saved.n || "",
+      ci: saved.ci || "",
+      em: saved.em || "",
+      addr: "",
+    },
     order: null,
   };
   head(p);
@@ -292,12 +423,14 @@ function draw() {
 const total = () => S.p.price * S.qty;
 const maxQty = () => {
   if (!AVAIL) return S.p.maxQty;
-  const left = S.p.id === "obra" ? AVAIL.obra[S.funcion] ?? 0 : AVAIL.libro;
+  const left = S.p.id === "obra" ? (AVAIL.obra[S.funcion] ?? 0) : AVAIL.libro;
   return Math.max(0, Math.min(S.p.maxQty, left));
 };
 function detalle() {
   const f = S.p.id === "obra" && OBRA.funciones.find((x) => x.id === S.funcion);
-  return `${S.qty} ${unit(S.p, S.qty)} · ${S.p.t}` + (f ? ` · ${fLong(f)}` : "");
+  return (
+    `${S.qty} ${unit(S.p, S.qty)} · ${S.p.t}` + (f ? ` · ${fLong(f)}` : "")
+  );
 }
 
 /* Paso 1: función / entrega y cantidad */
@@ -312,14 +445,23 @@ function stepChoose() {
         const past = fDate(f) < new Date();
         const left = AVAIL ? AVAIL.obra[f.id] : null;
         const off = past || left === 0;
-        const note = past ? "Finalizada" : left === 0 ? "Agotado" : left != null && left <= 30 ? `¡Quedan ${left}!` : "Disponible";
+        const note = past
+          ? "Finalizada"
+          : left === 0
+            ? "Agotado"
+            : left != null && left <= 30
+              ? `¡Quedan ${left}!`
+              : "Disponible";
         return `<label class="zone${off ? " off" : ""}"><input type="radio" name="opt" value="${f.id}" ${S.funcion === f.id ? "checked" : ""} ${off ? "disabled" : ""}>
           <span class="z-n">${esc(fLong(f))}</span><span class="z-s${left != null && left <= 30 && !off ? " hot" : ""}">${note}</span><span class="z-p">${bs(p.price)}</span></label>`;
       })
       .join("")}</fieldset>`;
   } else {
     opts = `<p class="about">${esc(p.s)}</p><fieldset class="zones"><legend>¿Cómo lo recibes?</legend>${p.delivery
-      .map((d) => `<label class="zone"><input type="radio" name="opt" value="${d.id}" ${S.delivery === d.id ? "checked" : ""}><span class="z-n">${esc(d.n)}</span></label>`)
+      .map(
+        (d) =>
+          `<label class="zone"><input type="radio" name="opt" value="${d.id}" ${S.delivery === d.id ? "checked" : ""}><span class="z-n">${esc(d.n)}</span></label>`,
+      )
       .join("")}</fieldset>`;
   }
   body.innerHTML = `
@@ -335,7 +477,8 @@ function stepChoose() {
     $("#tt").textContent = bs(total());
     $("#qm").disabled = S.qty <= 1;
     $("#qp").disabled = S.qty >= mx;
-    $("#qnote").textContent = S.qty >= S.p.maxQty ? `Máximo ${S.p.maxQty} por pedido.` : "";
+    $("#qnote").textContent =
+      S.qty >= S.p.maxQty ? `Máximo ${S.p.maxQty} por pedido.` : "";
     $("#nx").disabled = !mx || (p.id === "obra" && !S.funcion);
   };
   $$('input[name="opt"]', body).forEach(
@@ -356,7 +499,8 @@ function stepChoose() {
 function stepBuyer() {
   const u = S.buyer;
   const isObra = S.p.id === "obra";
-  const needsAddr = !isObra && S.p.delivery.find((d) => d.id === S.delivery)?.needsAddress;
+  const needsAddr =
+    !isObra && S.p.delivery.find((d) => d.id === S.delivery)?.needsAddress;
   body.innerHTML = `
     <form id="bf" novalidate>
       <label for="bn">Nombre completo</label><input id="bn" autocomplete="name" value="${esc(u.n)}" required>
@@ -370,7 +514,12 @@ function stepBuyer() {
   $("#bk").onclick = () => setStep(0);
   $("#bf").onsubmit = (ev) => {
     ev.preventDefault();
-    const v = { n: $("#bn").value.trim(), ci: $("#bci")?.value.trim() || "", em: $("#bem").value.trim(), addr: $("#baddr")?.value.trim() || "" };
+    const v = {
+      n: $("#bn").value.trim(),
+      ci: $("#bci")?.value.trim() || "",
+      em: $("#bem").value.trim(),
+      addr: $("#baddr")?.value.trim() || "",
+    };
     const bad = [];
     if (v.n.length < 3 || !v.n.includes(" ")) bad.push("bn");
     if (isObra && !/^\d{5,}[A-Za-z0-9-]*$/.test(v.ci)) bad.push("bci");
@@ -383,7 +532,10 @@ function stepBuyer() {
       el.setAttribute("aria-invalid", bad.includes(k));
     });
     if (bad.length) {
-      $("#er").textContent = bad.includes("bn") && v.n && !v.n.includes(" ") ? "Escribe tu nombre y apellido." : "Revisa los campos marcados.";
+      $("#er").textContent =
+        bad.includes("bn") && v.n && !v.n.includes(" ")
+          ? "Escribe tu nombre y apellido."
+          : "Revisa los campos marcados.";
       $("#" + bad[0]).focus();
       return;
     }
@@ -399,13 +551,31 @@ async function stepPay() {
     body.innerHTML = `<div class="loading">Preparando tu pedido…</div>`;
     try {
       if (SERVER) {
-        const o = await api("/orders", { method: "POST", body: { product: S.p.id, funcion: S.funcion, delivery: S.delivery, qty: S.qty, buyer: S.buyer, source: SOURCE } });
+        const o = await api("/orders", {
+          method: "POST",
+          body: {
+            product: S.p.id,
+            funcion: S.funcion,
+            delivery: S.delivery,
+            qty: S.qty,
+            buyer: S.buyer,
+            source: SOURCE,
+          },
+        });
         if (!S) return;
         S.order = o;
       } else {
         S.order = localOrder();
       }
-      saveOrder({ code: S.order.code, key: S.order.key || null, product: S.p.id, detalle: S.order.detalle, amount: S.order.amount, waLink: S.order.waLink, at: Date.now() });
+      saveOrder({
+        code: S.order.code,
+        key: S.order.key || null,
+        product: S.p.id,
+        detalle: S.order.detalle,
+        amount: S.order.amount,
+        waLink: S.order.waLink,
+        at: Date.now(),
+      });
     } catch (e) {
       if (!S) return;
       body.innerHTML = `<p class="error">${esc(e.message)}</p><div class="nav"><button class="btn ghost" id="bk" type="button">Atrás</button><button class="btn" id="rt" type="button">Reintentar</button></div>`;
@@ -421,20 +591,52 @@ async function stepPay() {
 
 function localOrder() {
   const abc = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  const code = "ST-" + Array.from(crypto.getRandomValues(new Uint8Array(5)), (b) => abc[b % 32]).join("");
+  const code =
+    "ST-" +
+    Array.from(
+      crypto.getRandomValues(new Uint8Array(5)),
+      (b) => abc[b % 32],
+    ).join("");
   const d = detalle();
-  const extra = [S.buyer.n, S.buyer.ci && "CI " + S.buyer.ci, S.buyer.addr && "Envío: " + S.buyer.addr].filter(Boolean).join(" · ");
+  const extra = [
+    S.buyer.n,
+    S.buyer.ci && "CI " + S.buyer.ci,
+    S.buyer.addr && "Envío: " + S.buyer.addr,
+  ]
+    .filter(Boolean)
+    .join(" · ");
   const text = `Hola, quiero pagar mi pedido ${code}: ${d} — Bs ${total()}\n${extra}`;
-  return { code, detalle: d, amount: total(), status: "nuevo", waLink: `https://wa.me/${CONTACT.whatsapp}?text=${encodeURIComponent(text)}` };
+  return {
+    code,
+    detalle: d,
+    amount: total(),
+    status: "nuevo",
+    waLink: `https://wa.me/${CONTACT.whatsapp}?text=${encodeURIComponent(text)}`,
+  };
 }
 
 const TRACK = [
-  ["nuevo", "Envía tu pedido por WhatsApp", "Toca el botón verde y envía el mensaje que ya está escrito."],
-  ["qr_enviado", "Paga el QR que te enviamos", "Descarga la imagen del QR y págala desde la app de tu banco."],
-  ["comprobante", "Envía tu comprobante", "Manda la foto del comprobante en el mismo chat. Lo validamos enseguida."],
+  [
+    "nuevo",
+    "Envía tu pedido por WhatsApp",
+    "Toca el botón verde y envía el mensaje que ya está escrito.",
+  ],
+  [
+    "qr_enviado",
+    "Paga el QR que te enviamos",
+    "Descarga la imagen del QR y págala desde la app de tu banco.",
+  ],
+  [
+    "comprobante",
+    "Envía tu comprobante",
+    "Manda la foto del comprobante en el mismo chat. Lo validamos enseguida.",
+  ],
   ["pagado", "Recibe tu entrada", "Te enviamos tu entrada única por WhatsApp."],
 ];
-const trackIdx = (s) => ({ nuevo: 0, esperando_qr: 1, qr_enviado: 1, comprobante: 2, pagado: 3 })[s] ?? 0;
+const trackIdx = (s) =>
+  ({ nuevo: 0, esperando_qr: 1, qr_enviado: 1, comprobante: 2, pagado: 3 })[
+    s
+  ] ?? 0;
 
 function renderPay() {
   const o = S.order;
@@ -466,7 +668,8 @@ function startPoll() {
     try {
       const o = await api(`/orders/${S.order.code}?k=${S.order.key}`);
       if (!S) return;
-      const changed = o.status !== S.order.status || o.rejected !== S.order.rejected;
+      const changed =
+        o.status !== S.order.status || o.rejected !== S.order.rejected;
       S.order = { ...S.order, ...o };
       if (o.status === "pagado") {
         stopPoll();
@@ -503,7 +706,13 @@ function stepDone() {
 function resumeOrder(saved, opener) {
   const p = PRODUCTS[saved.product];
   stopPoll();
-  S = { p, step: 2, qty: 1, buyer: store.get("st_buyer", {}), order: { ...saved, status: saved.status || "nuevo" } };
+  S = {
+    p,
+    step: 2,
+    qty: 1,
+    buyer: store.get("st_buyer", {}),
+    order: { ...saved, status: saved.status || "nuevo" },
+  };
   head(p);
   openLayer($("#ov"), opener, () => {
     stopPoll();
@@ -519,11 +728,13 @@ $("#openOrders").onclick = async (ev) => {
   if (!SERVER) return;
   const list = myOrders();
   await Promise.all(
-    list.filter((o) => o.key).map(async (o) => {
-      try {
-        Object.assign(o, await api(`/orders/${o.code}?k=${o.key}`));
-      } catch {}
-    }),
+    list
+      .filter((o) => o.key)
+      .map(async (o) => {
+        try {
+          Object.assign(o, await api(`/orders/${o.code}?k=${o.key}`));
+        } catch {}
+      }),
   );
   store.set("st_orders", list);
   renderOrders();
@@ -531,7 +742,8 @@ $("#openOrders").onclick = async (ev) => {
 function renderOrders() {
   const all = myOrders();
   if (!all.length) {
-    $("#tkList").innerHTML = `<div class="empty-tk"><p>Aún no tienes pedidos.</p><button class="btn" type="button" data-buy="obra">Comprar entradas</button></div>`;
+    $("#tkList").innerHTML =
+      `<div class="empty-tk"><p>Aún no tienes pedidos.</p><button class="btn" type="button" data-buy="obra">Comprar entradas</button></div>`;
     return;
   }
   $("#tkList").innerHTML =
@@ -545,7 +757,8 @@ function renderOrders() {
       ${o.ticket?.link ? `<a class="btn sm" href="${esc(o.ticket.link)}" target="_blank" rel="noopener">Ver entrada</a>` : o.status === "pagado" ? `<span class="pill ok">Confirmado</span>` : `<button class="btn sm" type="button" data-track="${esc(o.code)}">Seguir pedido</button>`}</div>
     </article>`,
       )
-      .join("") + `<p class="msg tiny">Tus pedidos se guardan en este dispositivo. Las entradas también te llegan por WhatsApp.</p>`;
+      .join("") +
+    `<p class="msg tiny">Tus pedidos se guardan en este dispositivo. Las entradas también te llegan por WhatsApp.</p>`;
 }
 
 /* ---------------- Podcast: avísame ---------------- */
@@ -555,14 +768,26 @@ $("#leadForm").onsubmit = async (ev) => {
     phone = $("#lp").value.replace(/\D/g, "");
   $("#ln").classList.toggle("err", name.length < 2);
   $("#lp").classList.toggle("err", phone.length < 7);
-  if (name.length < 2 || phone.length < 7) return ($("#leadErr").textContent = "Escribe tu nombre y tu número de WhatsApp.");
+  if (name.length < 2 || phone.length < 7)
+    return ($("#leadErr").textContent =
+      "Escribe tu nombre y tu número de WhatsApp.");
   $("#leadErr").textContent = "";
   const btn = $("#leadForm button");
   btn.disabled = true;
   try {
-    if (SERVER) await api("/leads", { method: "POST", body: { name, phone, interest: "podcast", source: SOURCE.src } });
-    else window.open(`https://wa.me/${CONTACT.whatsapp}?text=${encodeURIComponent(`Hola, soy ${name}. Avísenme cuando salga el podcast 🎙️`)}`, "_blank", "noopener");
-    $("#leadForm").outerHTML = `<p class="thanks">¡Listo, ${esc(name.split(" ")[0])}! Te avisaremos por WhatsApp el día del estreno. 🎙️</p>`;
+    if (SERVER)
+      await api("/leads", {
+        method: "POST",
+        body: { name, phone, interest: "podcast", source: SOURCE.src },
+      });
+    else
+      window.open(
+        `https://wa.me/${CONTACT.whatsapp}?text=${encodeURIComponent(`Hola, soy ${name}. Avísenme cuando salga el podcast 🎙️`)}`,
+        "_blank",
+        "noopener",
+      );
+    $("#leadForm").outerHTML =
+      `<p class="thanks">¡Listo, ${esc(name.split(" ")[0])}! Te avisaremos por WhatsApp el día del estreno. 🎙️</p>`;
   } catch (e) {
     $("#leadErr").textContent = e.message;
     btn.disabled = false;
@@ -573,7 +798,9 @@ $("#leadForm").onsubmit = async (ev) => {
    VIDEOS
    ===================================================================== */
 function youtubeId(url) {
-  const m = String(url).match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/|live\/)|youtu\.be\/)([\w-]{11})/);
+  const m = String(url).match(
+    /(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/|live\/)|youtu\.be\/)([\w-]{11})/,
+  );
   return m && m[1];
 }
 function openVideo(i, opener) {
@@ -585,12 +812,21 @@ function openVideo(i, opener) {
   const vid = $("#player video");
   /* el reproductor toma la forma del video (horizontal o vertical) */
   $("#player").style.aspectRatio = "";
-  if (vid) vid.onloadedmetadata = () => vid.videoWidth && ($("#player").style.aspectRatio = `${vid.videoWidth} / ${vid.videoHeight}`);
-  if (vid) vid.onerror = () => ($("#player").innerHTML = `<div class="v-err"><p>No pudimos cargar este video.</p><a class="btn ghost sm" href="${esc(v.src)}" target="_blank" rel="noopener">Abrir en otra pestaña</a></div>`);
+  if (vid)
+    vid.onloadedmetadata = () =>
+      vid.videoWidth &&
+      ($("#player").style.aspectRatio =
+        `${vid.videoWidth} / ${vid.videoHeight}`);
+  if (vid)
+    vid.onerror = () =>
+      ($("#player").innerHTML =
+        `<div class="v-err"><p>No pudimos cargar este video.</p><a class="btn ghost sm" href="${esc(v.src)}" target="_blank" rel="noopener">Abrir en otra pestaña</a></div>`);
   const p = PRODUCTS[v.product];
   const canBuy = p && p.price && (p.id !== "obra" || upcoming().length);
-  $("#vbar").innerHTML = `<div><small>${esc(v.tag)}</small><h3>${esc(v.t)}</h3></div>${canBuy ? `<button class="btn sm" type="button" id="vbuy">${p.id === "obra" ? "Comprar entradas" : "Comprar el libro"}</button>` : ""}`;
-  if (canBuy) $("#vbuy").onclick = () => (closeLayer($("#vo")), openCheckout(p.id));
+  $("#vbar").innerHTML =
+    `<div><small>${esc(v.tag)}</small><h3>${esc(v.t)}</h3></div>${canBuy ? `<button class="btn sm" type="button" id="vbuy">${p.id === "obra" ? "Comprar entradas" : "Comprar el libro"}</button>` : ""}`;
+  if (canBuy)
+    $("#vbuy").onclick = () => (closeLayer($("#vo")), openCheckout(p.id));
   openLayer($("#vo"), opener, () => ($("#player").innerHTML = ""));
 }
 
@@ -626,7 +862,9 @@ renderVideos();
 updateCount();
 detectServer().then(async (ok) => {
   SERVER = ok;
-  if (!ok) $("#modeBadge").textContent = "· Vista sin servidor: los pedidos se envían por WhatsApp y se validan a mano.";
+  if (!ok)
+    $("#modeBadge").textContent =
+      "· Vista sin servidor: los pedidos se envían por WhatsApp y se validan a mano.";
   await loadAvailability();
   /* Enlaces directos desde redes: ?p=obra o ?p=libro abre la compra */
   const want = params.get("p");
